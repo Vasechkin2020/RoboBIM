@@ -1,15 +1,16 @@
 
-// #define MOTOR yes
+#define MOTOR yes
 // #define REMOTEXY yes
 // #define BNO_def yes
 // #define SPI_protocol yes
-// #define INA219_def yes // Датчик по питанию сервомоторов
+#define INA219_def yes // Датчик по питанию сервомоторов
 // #define LED_def yes
-#define MOTOR_SERVO_def yes
+// #define MOTOR_SERVO_def yes
 // #define VL530L0X_def yes
 // #define RCWL1601_def yes
 
 #include <Arduino.h>
+
 #include <Wire.h>
 
 #include "config.h" // Основной конфигурационный файл с общими настройками
@@ -33,20 +34,22 @@ VL53L0X Sensor_VL53L0X_R;
 #include "code.h"
 #include "uzi.h"
 
-
 void setup()
 {
+    printf("initTimer_0 \n");
+    initTimer_0(); // Запуск таймера 0
     Serial.begin(115200);
     delay(1000);
     Serial.println(" ");
     Serial.println(String(micros()) + " Start program ESP32_Driver RoboBIM ...");
 
 #ifdef MOTOR
+    delay(10000);
     initMotor(); // Начальная инициализация и настройка шаговых моторов
-    // setSpeed_L(0.3);
-    // setSpeed_R(0.3);
-    // delay(5000);
-    // stopMotor();
+    setSpeed_L(0.3);
+    setSpeed_R(0.3);
+    delay(15000);
+    stopMotor();
 #endif
 
     initLed(); // Начальная инициализация и настройка светодиодов
@@ -101,9 +104,6 @@ void setup()
     Setup_BNO055();
 #endif
 
-    printf("initTimer_0 \n");
-    initTimer_0(); // Запуск таймера 0
-
 #ifdef SPI_protocol
     printf("initSPI_slave \n");
     initSPI_slave(); // Инициализация SPI_slave
@@ -131,6 +131,7 @@ int a, b;
 
 void loop()
 {
+    //***********************************************************************
     // digitalWrite(PIN_ANALIZ, 1);
     if (flag_setup == 0)
     {
@@ -141,10 +142,6 @@ void loop()
         Led_Blink(PIN_LED_GREEN, 100); // Мигаем светодиодом каждую 1/2 секунду, что-бы было видно что цикл не завис
     }
 
-#ifdef MOTOR
-    movementTime(); // Отслеживание времени движения
-    delayMotor();   // Задержка отключения драйверов моторов после остановки
-#endif
 #ifdef REMOTEXY
     RemoteXY_Handler(); // Обработчик. считывает данные и хранит во внутренних переменных.
 #endif
@@ -167,6 +164,7 @@ void loop()
         spi_slave_queue_Send(); // Закладываем данные в буфер для передачи(обмена)
     }
 
+    //***********************************************************************
     //----------------------------- 10 миллисекунд --------------------------------------
     if (flag_timer_10millisec)
     {
@@ -198,7 +196,7 @@ void loop()
 #endif
 #ifdef RCWL1601_def
         loopUzi(); // Все действия по ультразвуковому датчику
-        //inTimerUzi(); // Проверка на случай если сигнал не вернется тогда через заданное время сбросим (было так раньше, потом перенес в основную функцию loopUzi())
+                   // inTimerUzi(); // Проверка на случай если сигнал не вернется тогда через заданное время сбросим (было так раньше, потом перенес в основную функцию loopUzi())
 #endif
     }
 
@@ -206,8 +204,13 @@ void loop()
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
-        // printRemoteXY();
-        // setSpeed_time(0.2, 0.2, 1000);
+
+#ifdef MOTOR // Контроль отключения драйверов моторов после остановки
+        movementTime(); // Отслеживание времени движения
+        delayMotor();   // Задержка отключения драйверов моторов после остановки
+#endif
+                      // printRemoteXY();
+                      // setSpeed_time(0.2, 0.2, 1000);
 #ifdef RCWL1601_def
         if (!Flag_uzi_wait) // Если прошлый сигнал обработали и не ждем данные
         {
@@ -222,11 +225,11 @@ void loop()
         flag_timer_1sec = false;
 
         printf(" %f \n", millis() / 1000.0);
-        // Ina219.printData(); // Вывод на печать данных
-        printDataIna219();
 
+#ifdef RCWL1601_def
         Serial.print(" distance = ");
         Serial.println(distance_uzi);
+#endif
 
 #ifdef VL530L0X_def
         loop_VL53L0X(); // Измерение лазерными датчиками
@@ -236,23 +239,24 @@ void loop()
 
         // Serial.print(b - a);
         // Serial.println(" time");
-
+#ifdef INA219_def
+        // Ina219.printData(); // Вывод на печать данных
+        printDataIna219();
+        // Ina219.calculateCapacity(); // колибровка в ноль и сохранение в память
+#endif
         // printBody();
 
         // Serial.println("setSpeed_time");
     }
-
+    //----------------------------- 1 МИНУТА !!!!  --------------------------------------
     if (flag_timer_60sec) // Вызывается каждую МИНУТУ
     {
         flag_timer_60sec = false;
-#ifdef INA219_def
-        // Ina219.calculateCapacity(); // колибровка в ноль и сохранение в память
-#endif
 
         // Печать времени что программа не зависла, закомментировать в реальной работе
-        printf(" %f \n", millis() / 1000.0);
+        // printf(" %f \n", millis() / 1000.0);
     }
+    //***********************************************************************
+
     // digitalWrite(PIN_ANALIZ, 0);
 }
-
-//***********************************************************************
