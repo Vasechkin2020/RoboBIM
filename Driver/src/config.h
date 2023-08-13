@@ -30,10 +30,10 @@ int flag_newControlData = 0; // Флаг что есть новые данные
 
 int flag_setup = 0; // Флаг что функйия setup прошла успешно
 
-int flag_servo_position_0 = 0; // Флаг команды встать в нчальное положение
+int flag_servo_position_0 = 0; // Флаг команды встать в начальное положение
 
-#define MAX_RADIUS 0.5      // Максимальный радиус поворота робота
-#define FIX_SPEED 0.3  // Скорость при ручном управлении
+#define MAX_RADIUS 1.0      // Максимальный радиус поворота робота
+#define FIX_SPEED 0.8  // Скорость при ручном управлении
 
 hw_timer_t *timer0 = NULL;
 hw_timer_t *timer1 = NULL;
@@ -57,14 +57,6 @@ struct Struct_RPY
   }
 };
 
-//Структура для датчика напряжения INA219
-struct Struct_INA
-{
-  float busVoltage_V = 0;
-  float shuntVoltage_mV = 0;
-  float current_mA = 0;
-  float power_mW = 0;
-};
 //Структура одометрии
 struct Struct_Odom
 {
@@ -89,7 +81,7 @@ struct Struct_Odom
 
 Struct_Odom g_odom_enc; // Одометрия по энкодерам
 Struct_Odom g_odom_imu; // Одометрия по гироскопу и аксельрометру
-float g_radius = 0;     // Радиус по которому движемся
+float g_radius = 0;     // Радиус по которому движемся - это внешний радиус по внешнему колесу.
 // float g_napravl = 0;     // Направление поворота по часовой или против часовой
 float g_speed = 0; // Скорость с которой движемся
 
@@ -124,7 +116,6 @@ struct Struct_Driver2Data
   float speed_L = 0;    // Скорость левого колеса
   float speed_R = 0;    // Скорость правого колеса
   Struct_RPY bno055;    // Данные с датчика BNO055
-  Struct_INA ina;       // Данные с датчика INA219
 
   uint32_t connect_flag; // Флаг связи с пультом ручного управления
   uint32_t startStop;    // Стоим или двигаемся

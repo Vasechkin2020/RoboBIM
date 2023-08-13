@@ -48,12 +48,12 @@ void executeCommand()
   }
   if (Data2Driver_receive.startStop == 1) // Если командв двигаться то задаем движение на 1 секунду
   {
-    printf(" Data2Driver.radius= %f ", Data2Driver_receive.radius);
-    printf(" Data2Driver.speed= %f ", Data2Driver_receive.speed);
+    // printf(" Data2Driver.radius= %f ", Data2Driver_receive.radius);
+    // printf(" Data2Driver.speed= %f \n", Data2Driver_receive.speed);
     setSpeed_time(Data2Driver_receive.speed, Data2Driver_receive.radius, 1000);
     // setSpeed_time(0.2, 0.2, 1000);
   }
-  command_pred = Data2Driver_receive.startStop; // Запоминаяем команду
+  command_pred = Data2Driver_receive.startStop; // Запоминаем команду
 #endif
 
 // Управление сервомоторами рук
@@ -144,10 +144,6 @@ void collect_Data()
   Driver2Data_send.bno055.roll = BNO055_EulerAngles.x;
   Driver2Data_send.bno055.pitch = BNO055_EulerAngles.y;
   Driver2Data_send.bno055.yaw = BNO055_EulerAngles.z;
-  Driver2Data_send.ina.busVoltage_V = stru_Ina219.busVoltage_V;
-  Driver2Data_send.ina.current_mA = stru_Ina219.current_mA;
-  Driver2Data_send.ina.shuntVoltage_mV = stru_Ina219.shuntVoltage_mV;
-  Driver2Data_send.ina.power_mW = stru_Ina219.power_mW;
 
   Driver2Data_send.connect_flag = RemoteXY.connect_flag;
   Driver2Data_send.startStop = RemoteXY.startStop;

@@ -104,11 +104,11 @@ void changeDataFromRemoteXY()
     float radius = map(RemoteXY.radius, -100, 100, -MAX_RADIUS * 1000, MAX_RADIUS * 1000) / 1000.0; //Преобразуем диапазон из Remote XY от -100 до 100 в допустимый диапазон, только челые числа функция использует
     if (radius > 0 ) 
     {
-       radius = MAX_RADIUS - radius + 0.01; // Прибавляем чуть-чуть чтобы радиус не получался 0 на краях
+       radius = MAX_RADIUS - radius + 0.001; // Прибавляем чуть-чуть чтобы радиус не получался 0 на краях
     }
     if (radius < 0 ) 
     {
-       radius = -MAX_RADIUS - radius - 0.01; // Отнимаем чуть-чуть чтобы радиус не получался 0 на краях
+       radius = -MAX_RADIUS - radius - 0.001; // Отнимаем чуть-чуть чтобы радиус не получался 0 на краях
     }
     Data2Driver_receive.radius = radius; 
 }
