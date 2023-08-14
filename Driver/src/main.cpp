@@ -118,7 +118,7 @@ void setup()
 
 
     // Serial.println(String(millis()) + " End SetUp !!!");
-    // setSpeedRPS_R(5);
+    // setSpeedRPS_R(2);
 
 }
 
