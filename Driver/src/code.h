@@ -41,25 +41,25 @@ void executeCommand()
 // Управление шаговыми мотрами движения
 #ifdef MOTOR
   static int command_pred = 0;                                                             // Переменная для запоминания предыдущей команды
-  if (Data2Driver_receive.startStop == 0 && Data2Driver_receive.startStop != command_pred) // Если пришла команда 0 и предыдущая была другая
+  if (Data2Driver_receive.control.startStop == 0 && Data2Driver_receive.control.startStop != command_pred) // Если пришла команда 0 и предыдущая была другая
   {
     // Serial.println("commanda  STOP...");
     stopMotor(); // все останавливаем
   }
-  if (Data2Driver_receive.startStop == 1) // Если командв двигаться то задаем движение на 1 секунду
+  if (Data2Driver_receive.control.startStop == 1) // Если командв двигаться то задаем движение на 1 секунду
   {
     // printf(" Data2Driver.radius= %f ", Data2Driver_receive.radius);
     // printf(" Data2Driver.speed= %f \n", Data2Driver_receive.speed);
-    setSpeed_time(Data2Driver_receive.speed, Data2Driver_receive.radius, 1000);
+    setSpeed_time(Data2Driver_receive.control.speed, Data2Driver_receive.control.radius, 1000);
     // setSpeed_time(0.2, 0.2, 1000);
   }
-  command_pred = Data2Driver_receive.startStop; // Запоминаем команду
+  command_pred = Data2Driver_receive.control.startStop; // Запоминаем команду
 #endif
 
 // Управление сервомоторами рук
 #ifdef MOTOR_SERVO_def
-  g_posServoL = getPosServo_L(); // Считываем положение мотора
-  g_posServoR = getPosServo_R(); // Считываем положение мотора
+  servo1.position = getPosServo_L(); // Считываем положение мотора
+  servo2.position = getPosServo_R(); // Считываем положение мотора
   if (Data2Driver_receive.servo == 0)
   {
     runServo_0(1000); // В начальное положение
@@ -135,34 +135,17 @@ void initTimer_0()
 void collect_Data()
 {
   Driver2Data_send.id++;
-  Driver2Data_send.odom_enc = g_odom_enc;
-  Driver2Data_send.odom_imu = g_odom_imu;
-  Driver2Data_send.odom_L = odom_way_L;
-  Driver2Data_send.odom_R = odom_way_R;
-  Driver2Data_send.speed_L = speed_L_fact;
-  Driver2Data_send.speed_R = speed_R_fact;
+  Driver2Data_send.odom_enc = odom_enc;
+  
+  Driver2Data_send.motorLeft.way = motorLeft.way;
+  Driver2Data_send.motorRight.way = motorRight.way;
+
   Driver2Data_send.bno055.roll = BNO055_EulerAngles.x;
   Driver2Data_send.bno055.pitch = BNO055_EulerAngles.y;
   Driver2Data_send.bno055.yaw = BNO055_EulerAngles.z;
 
-  Driver2Data_send.connect_flag = RemoteXY.connect_flag;
-  Driver2Data_send.startStop = RemoteXY.startStop;
-  Driver2Data_send.radius = RemoteXY.radius;
-  Driver2Data_send.servo = RemoteXY.servo;
-  Driver2Data_send.led = RemoteXY.led;
-  Driver2Data_send.angle_camera = RemoteXY.camera;
-  Driver2Data_send.status_wifi = flag_wifi;
-  Driver2Data_send.posServoL = g_posServoL;
-  Driver2Data_send.posServoR = g_posServoL;
-
-  if (RemoteXY.connect_flag == 1) // Если есть связь то берем данные от ручного управления и заменяем те что пришли по шине
-  {
-    Driver2Data_send.speed = FIX_SPEED; // Скорость идет особо. Возвращаем ту которую пришло от Data  или ту которую поменили в ручном варианте на постоянную
-  }
-  else
-  {
-    Driver2Data_send.speed = Data2Driver_receive.speed; // Скорость идет особо. Возвращаем ту которую пришло от Data  или ту которую поменили в ручном варианте на постоянную
-  }
+  Driver2Data_send.servo1.position = servo1.position;
+  Driver2Data_send.servo2.position = servo2.position;
 
   Driver2Data_send.cheksum = measureCheksum(Driver2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
 

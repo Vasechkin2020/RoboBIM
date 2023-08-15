@@ -118,7 +118,8 @@ void setup()
 
 
     // Serial.println(String(millis()) + " End SetUp !!!");
-    // setSpeedRPS_R(2);
+    setSpeedRPS_L(1);
+    setSpeedRPS_R(1);
 
 }
 
@@ -138,11 +139,11 @@ void loop()
     {
         Led_Blink(PIN_LED_GREEN, 100); // Мигаем светодиодом каждую 1/2 секунду, что-бы было видно что цикл не завис
     }
-    // if (millis()>10000 && ff)
-    // {
-    //     stopMotor();
-    //     ff = false;
-    // }
+    if (millis()>10000 && ff)
+    {
+        stopMotor();
+        ff = false;
+    }
     
 
 #ifdef REMOTEXY

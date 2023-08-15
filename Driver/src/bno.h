@@ -884,19 +884,19 @@ void calculateOdom_imu()
 {
     
     //Находим угловую скорость поворота в радианах в секунду
-    g_odom_imu.vel_th = BNO055_LinAccData.z; //  Берем угловую скорость с imu
+    bno055.vel_th = BNO055_LinAccData.z; //  Берем угловую скорость с imu
     //---------------------------------------
-    g_odom_imu.vel_x = BNO055_LinAccData.x; // Берем линейную скорость с imu
-    g_odom_imu.vel_y = BNO055_LinAccData.y; // Берем линейную скорость с imu
+    bno055.vel_x = BNO055_LinAccData.x; // Берем линейную скорость с imu
+    bno055.vel_y = BNO055_LinAccData.y; // Берем линейную скорость с imu
 
-    float delta_x = (g_odom_imu.vel_x) * BNO055_LinAccData.delta_time;
-    float delta_y = (g_odom_imu.vel_y) * BNO055_LinAccData.delta_time;
-    float delta_th = g_odom_imu.vel_th * BNO055_LinAccData.delta_time;
+    float delta_x = bno055.vel_x * BNO055_LinAccData.delta_time;
+    float delta_y = bno055.vel_y * BNO055_LinAccData.delta_time;
+    float delta_th = bno055.vel_th * BNO055_LinAccData.delta_time;
 
     // Меняем координаты и угол на основе вычислений
-    g_odom_imu.x += delta_x;   //Вычисляем координаты
-    g_odom_imu.y += delta_y;   //Вычисляем координаты
-    g_odom_imu.th += delta_th; // Прибавляем к текущему углу и получаем новый угол куда смотрит наш робот
+    bno055.x += delta_x;   //Вычисляем координаты
+    bno055.y += delta_y;   //Вычисляем координаты
+    bno055.th += delta_th; // Прибавляем к текущему углу и получаем новый угол куда смотрит наш робот
 
     //printf("x= %.2f y= %.2f th= %.3f dt= %.4f  time= %u \n", g_odom_imu.x, g_odom_imu.y, g_odom_imu.th, BNO055_LinAccData.delta_time,  millis());
 }

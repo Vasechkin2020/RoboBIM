@@ -94,11 +94,11 @@ struct
 void changeDataFromRemoteXY()
 {
     flag_newControlData = 1; // Устанавливаем флаг что есть новые данные по ручному управлению
-    Data2Driver_receive.startStop = RemoteXY.startStop;
-    Data2Driver_receive.speed = FIX_SPEED; // При ручном управлении скорость постоянная
-    Data2Driver_receive.angle_camera = RemoteXY.camera;
-    Data2Driver_receive.led = RemoteXY.led;
-    Data2Driver_receive.servo = RemoteXY.servo;
+    Data2Driver_receive.control.startStop = RemoteXY.startStop;
+    Data2Driver_receive.control.speed = FIX_SPEED; // При ручном управлении скорость постоянная
+    //Data2Driver_receive.angle_camera = RemoteXY.camera;
+    //Data2Driver_receive.led = RemoteXY.led;
+    //Data2Driver_receive.servo = RemoteXY.servo;
     
     //Преобразование радиуса в нужный вид
     float radius = map(RemoteXY.radius, -100, 100, -MAX_RADIUS * 1000, MAX_RADIUS * 1000) / 1000.0; //Преобразуем диапазон из Remote XY от -100 до 100 в допустимый диапазон, только челые числа функция использует
@@ -110,7 +110,7 @@ void changeDataFromRemoteXY()
     {
        radius = -MAX_RADIUS - radius - 0.001; // Отнимаем чуть-чуть чтобы радиус не получался 0 на краях
     }
-    Data2Driver_receive.radius = radius; 
+    Data2Driver_receive.control.radius = radius; 
 }
 
 void printRemoteXY()
