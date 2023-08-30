@@ -10,13 +10,13 @@
 #define PIN_R_Step 32 //
 #define PIN_R_Dir 33  //
 
-#define DIAMETR 126 // Влияет на правильность длинны через расчет скорости
+#define DIAMETR 128 // Влияет на правильность длинны через расчет скорости
 #define RADIUS (DIAMETR / 2)
 #define PERIMETR (DIAMETR * PI)
 #define DISTANCE_WHEELS 0.344 // Растояние между колесами робота. подобрал экспериментально Влияет на правильность круга
 
-#define MAX_SPEED 0.8    // максимальная скорость машинки в метрах в секунду
-#define MAX_RPS 2.0      // максимальная скорость колеса в оборотах в секунду
+#define MAX_SPEED 1.5    // максимальная скорость машинки в метрах в секунду
+#define MAX_RPS 4.0      // максимальная скорость колеса в оборотах в секунду
 #define ACCELERATION 2.0 // Ускорение/замедление машинки константа оборотах в секунду
 //---------------------------------------------------------------------------------------
 
@@ -109,7 +109,8 @@ void setTimeing_Step_L(float rps_)
 {
     // Serial.print(" Trps_= ");
     // Serial.println(rps_);
-    rps_L_fact = rps_; // Фиксируем фактические обороты
+    rps_L_fact = rps_;       // Фиксируем фактические обороты
+    motorLeft.rpsSet = rps_; // Фиксируем фактичские обороты
     // Берем обороты их умножаем на градусы и делим на градус на 1 шаг получаем нужное число полных шагов для такой скорости за секунду
     float step_za_sec = (rps_ * 360 / 1.8);
 
@@ -138,7 +139,8 @@ void setTimeing_Step_R(float rps_)
 {
     // Serial.print(" Timeing_Step_R rps_= ");
     // Serial.println(rps_);
-    rps_R_fact = rps_; // Фиксируем фактичские обороты
+    rps_R_fact = rps_;        // Фиксируем фактичские обороты
+    motorRight.rpsSet = rps_; // Фиксируем фактичские обороты
     // Берем обороты их умножаем на градусы и делим на градус на 1 шаг получаем нужное число полных шагов для такой скорости за секунду
     float step_za_sec = (rps_ * 360 / 1.8);
 
@@ -355,7 +357,7 @@ void setSpeedMS_R(float _speed)
     float rps = ((_speed * 1000) / PERIMETR); // Скорость приводим в милиметры и делим на периметр колеса получаем сколько нужно делать оборотов  в секунду для такой скорости за секунду
     // Serial.print(" rps= ");
     // Serial.println(rps);
-    setSpeedRPS_R(rps);    // Устанавливаем скорость вращения в оборотах в секунду
+    setSpeedRPS_R(rps); // Устанавливаем скорость вращения в оборотах в секунду
 }
 
 // Остановка моторов  и установкка времени задержки выключения драйверов
@@ -363,8 +365,6 @@ void stopMotor()
 {
     setSpeedMS_L(0);
     setSpeedMS_R(0);
-    car.speed = 0;  // Для одометрии скорость ставим 0
-    car.radius = 0; // Для одометрии радиус ставим 0
 }
 
 // Инициализация таймера 1. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
@@ -446,42 +446,67 @@ void calculateOdom_enc()
     odom_impuls_L = 0; // Обнуляем значение
     odom_impuls_R = 0; // Обнуляем значение
 
-    motorLeft.rps = (gradusL / dt) / 360;  // Сколько оборотов сделали
-    motorRight.rps = (gradusR / dt) / 360; // Сколько оборотов сделали
+    motorLeft.rpsEncod = (gradusL / dt) / 360;  // Сколько оборотов сделали
+    motorRight.rpsEncod = (gradusR / dt) / 360; // Сколько оборотов сделали
 
     // printf("odom_impuls_L= %i rps_L= %f \n", odom_impuls_L, rps_L);
     // printf("odom_impuls_R= %i rps_R= %f \n", odom_impuls_R, rps_R);
     // printf("dt= %f odom_impuls_L= %i impuls for sec= %f rps= %f rps2= %f \n", dt, odom_impuls_L, odom_impuls_L /dt, (gradusL /dt) / 360, rps_L);
     // printf("dt= %f odom_impuls_R= %i impuls for sec= %f rps= %f rps2= %f \n", dt, odom_impuls_R, odom_impuls_R /dt, (gradusR /dt) / 360, rps_R);
 
-    float way_L = ((PI * (RADIUS / 1000.0)) / 180.0) * gradusL; // По формуле длинны дуги находим пройденный путь колесом Радиус приводим в метры так как он указан в мм
+    float way_L = ((PI * (RADIUS / 1000.0)) / 180.0) * gradusL; // По формуле длинны дуги находим пройденный путь колесом Радиус приводим в метры так как он указан в мм Это и есть скорость за секунду
     float way_R = ((PI * (RADIUS / 1000.0)) / 180.0) * gradusR; // По формуле длинны дуги находим пройденный путь колесом
     float way_C = (way_L + way_R) / 2.0;                        // Путь средней точки Center
     motorLeft.way += way_L;                                     // суммируем
     motorRight.way += way_R;                                    // суммируем
     car.way += way_C;                                           // суммируем
 
-    printf("dt= %f odom_way_L= %f  odom_way_R= %f odom_way_C= %f \n", dt, motorLeft.way, motorRight.way, car.way);
+    car.speedEncod = way_C / dt; // Скорость с какой фактически едем это длинна дуги за секунду
+
+    // Радиус фактический высчитываем из раздницы скоростей колес https://present5.com/presentation/111019976_277103894/image-5.jpg
+    float VV = (way_L + way_R); // Путь это и есть скорость за время
+    float V_V = (way_L - way_R);
+
+    if (V_V == 0 && V_V < 0.001) // Чтобы не делить на ноль когда скорости равны или очень маленькая разница
+    {
+        V_V = 0.001;
+    }
+    car.radiusEncod = 0.5 * DISTANCE_WHEELS * (VV / V_V); //
+    if (car.radiusEncod > 0)
+    {
+        car.radiusEncod = car.radiusEncod + DISTANCE_WHEELS / 2;
+    }
+    else
+    {
+        car.radiusEncod = car.radiusEncod - DISTANCE_WHEELS / 2;
+    }
+    if (abs(car.radiusEncod) > 5) // Если едем прямо то большой радиус и его превращаем в ноль, чтобы ясно было что едем прямо
+    {
+        car.radiusEncod = 0;
+    }
+
+    //****************************************** РАСЧЕТ ОДОМЕТРИИ **************************************************************************************************************************
+    // printf("dt= %f odom_way_L= %f  odom_way_R= %f odom_way_C= %f \n", dt, motorLeft.way, motorRight.way, car.way);
 
     float angle_pov;
     // Находим угловую скорость вращения (поворота) робота
-    if (car.radius == 0) // Если двигаемся прямо то
+    if (car.radiusSet == 0) // Если двигаемся прямо то
     {
         angle_pov = 0; // Угол поворота равен нулю
     }
     else
     {
-        angle_pov = way_C / -car.radius; // Делим пройденный оп дуге путь на радиус движения получаем угол поворота в радианах
+        angle_pov = way_C / -car.radiusSet; // Делим пройденный оп дуге путь на радиус движения получаем угол поворота в радианах
         angle_pov_sum += angle_pov * 180.0 / PI;
     }
     // Находим угловую скорость поворота в радианах в секунду
     odom_enc.vel_th = angle_pov / dt; //  Вычисляем радианы в секунду получаем угловую скорость
     //---------------------------------------
     // Находим линейные скорости из моего вектора скорости. Я задаю общую скорость движения (длинна вектора), ее надо разложить на проекции по осям x y. Это будут линейные скорости
-    odom_enc.vel_x = car.speed * cos(odom_enc.th); // Проекция моей скорости на ось X получаем линейную скорость по оси
-    odom_enc.vel_y = car.speed * sin(odom_enc.th); // Проекция моей скорости на ось Y получаем линейную скорость по оси
+    odom_enc.vel_x = car.speedEncod * cos(odom_enc.th); // Проекция моей скорости на ось X получаем линейную скорость по оси
+    odom_enc.vel_y = car.speedEncod * sin(odom_enc.th); // Проекция моей скорости на ось Y получаем линейную скорость по оси
 
-    // printf("car.speed= %.2f  g_radius= %.2f angle_pov= %f  angle_pov_sum= %f vel_x= %.2f  vel_y= %.2f  vel_th= %f ", car.speed, g_radius, angle_pov, angle_pov_sum, g_odom_enc.vel_x, g_odom_enc.vel_y, g_odom_enc.vel_th);
+    // printf("car.speedEncod= %.2f  g_radius= %.2f angle_pov= %f  angle_pov_sum= %f vel_x= %.2f  vel_y= %.2f  vel_th= %f ", car.speedEncod, g_radius, angle_pov, angle_pov_sum, g_odom_enc.vel_x, g_odom_enc.vel_y, g_odom_enc.vel_th);
 
     // Находим смещение по глобальной карте по осям Х и Y c помощью матрицы вращения. Она вычисляет смешения по осям на нужный угол
     // float delta_x = (odom_enc.vel_x * cos(odom_enc.th) - odom_enc.vel_y * sin(odom_enc.th)) * dt;
@@ -537,33 +562,33 @@ float checkMaxSpeedRadius(float radius_, float speed_)
 // Установка скорости моторов в зависимости от радиуса и направления
 void setSpeedRadius(float speed_, float radius_)
 {
-    car.radius = checkMinRadius(radius_); // Проверка на реалистичность Запоминаяем радиус для расчета одометрии теперь у нас такой радиус отнего все и считаем Это центр робота
+    car.radiusSet = checkMinRadius(radius_); // Проверка на реалистичность Запоминаяем радиус для расчета одометрии теперь у нас такой радиус отнего все и считаем Это центр робота
     // Радиус делаем главным. Далее считаем скорость по колесам и если скорость превышает возможную то подгоняем ее по максимуму и едем с возможноц скоростью, но по заданному радиусу
-    car.speed = checkMaxSpeedRadius(car.radius, speed_); // Проверка на MAXSPEED Запоминаяем скорость для расчета одометрии теперь у нас такая скорость от нее все и считаем
+    car.speedSet = checkMaxSpeedRadius(car.radiusSet, speed_); // Проверка на MAXSPEED Запоминаяем скорость для расчета одометрии теперь у нас такая скорость от нее все и считаем
 
     float k2 = 0;
-    if (car.radius != 0) // Вычисляем коефициент перобразования иначе он остается равен 0
+    if (car.radiusSet != 0) // Вычисляем коефициент перобразования иначе он остается равен 0
     {
         // k2 = (DISTANCE_WHEELS / 2.0) / abs(g_radius); // Находим долю какую составляем растояние половинки между колесами тела и радиусом поворота.
-        k2 = (DISTANCE_WHEELS / 2) / (abs(car.radius) - (DISTANCE_WHEELS / 2)); // Находим долю какую составляем растояние половинки между колесами тела и радиусом поворота.
+        k2 = (DISTANCE_WHEELS / 2) / (abs(car.radiusSet) - (DISTANCE_WHEELS / 2)); // Находим долю какую составляем растояние половинки между колесами тела и радиусом поворота.
         // printf("k2= %f \n", k2);
     }
-    float internal_speed = car.speed * (1 - k2);
-    float external_speed = car.speed * (1 + k2);
-    // printf(" internal_speed= %f  center_speed= %f external_speed= %f \n", internal_speed, car.speed, external_speed);
+    float internal_speed = car.speedSet * (1 - k2);
+    float external_speed = car.speedSet * (1 + k2);
+    // printf(" internal_speed= %f  center_speed= %f external_speed= %f \n", internal_speed, speed_, external_speed);
 
     // Определяем направление движения
-    if (radius_ == 0) // Едем по прямой
+    if (car.radiusSet == 0) // Едем по прямой
     {
-        setSpeedMS_L(car.speed);
-        setSpeedMS_R(car.speed);
+        setSpeedMS_L(car.speedSet);
+        setSpeedMS_R(car.speedSet);
     }
-    if (radius_ < 0) //  едем против часовой стрелки, поворачиваем налево
+    if (car.radiusSet < 0) //  едем против часовой стрелки, поворачиваем налево
     {
         setSpeedMS_L(internal_speed); // Левое едет медленней
         setSpeedMS_R(external_speed); // Правое едет быстрее
     }
-    if (radius_ > 0) // По часовой стрелке направо
+    if (car.radiusSet > 0) // По часовой стрелке направо
     {
         setSpeedMS_L(external_speed); // Левое едет быстрее
         setSpeedMS_R(internal_speed); // Правое едет медленно

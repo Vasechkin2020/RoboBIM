@@ -14,36 +14,41 @@ LSServo::LSServo()
 	pSerial = NULL;
 }
 
-int LSServo::readLSS(unsigned char *nDat, int nLen) 	//NEEDS UPDATE/MERGE/ALIGNMENT w LewanSoul code
+int LSServo::readLSS(unsigned char *nDat, int nLen) // NEEDS UPDATE/MERGE/ALIGNMENT w LewanSoul code
 {
 	int Size = 0;
 	int ComData;
 	unsigned long t_begin = millis();
 	unsigned long t_user;
-	while(1){
+	while (1)
+	{
 		ComData = pSerial->read();
-		if(ComData!=-1){
-			if(nDat){
+		if (ComData != -1)
+		{
+			if (nDat)
+			{
 				nDat[Size] = ComData;
 			}
 			Size++;
 			t_begin = millis();
 		}
-		if(Size>=nLen){
+		if (Size >= nLen)
+		{
 			break;
 		}
 		t_user = millis() - t_begin;
-		if(t_user>IOTimeOut){
+		if (t_user > IOTimeOut)
+		{
 			break;
 		}
 	}
 	return Size;
 }
 
-
 int LSServo::writeLSS(unsigned char *nDat, int nLen)
 {
-	if(nDat==NULL){
+	if (nDat == NULL)
+	{
 		return 0;
 	}
 	return pSerial->write(nDat, nLen);
@@ -51,5 +56,6 @@ int LSServo::writeLSS(unsigned char *nDat, int nLen)
 
 void LSServo::flushLSS()
 {
-	while(pSerial->read()!=-1);
+	while (pSerial->read() != -1)
+		;
 }

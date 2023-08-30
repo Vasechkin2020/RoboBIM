@@ -1,8 +1,6 @@
 #ifndef I2C_MY_H
 #define I2C_MY_H
 
-
-
 int16_t uint8ToUint16(uint8_t Hbyte, uint8_t Lbyte) // Из двух байт получаем двухбайтное число. не перепутать старший и младший байт. так как бывает разная последовательность регистров
 {
   return ((int16_t)Hbyte << 8) | Lbyte;
@@ -29,7 +27,7 @@ uint8_t ReadByte_I2C(uint8_t address, int8_t registr)
   byte rezb = Wire.requestFrom(address, (uint8_t)1);
   if (rezb == 1)
   {
-    uint8_t data = Wire.read(); //read one byte of data
+    uint8_t data = Wire.read(); // read one byte of data
     return data;
   }
   else
@@ -45,8 +43,8 @@ uint16_t ReadWord_I2C(uint8_t address, int8_t registr)
   Wire.write(registr);
   Wire.endTransmission();
   Wire.requestFrom(address, (uint8_t)2);
-  uint8_t Hbyte = Wire.read(); //read High byte of data
-  uint8_t Lbyte = Wire.read(); //read Low byte of data
+  uint8_t Hbyte = Wire.read(); // read High byte of data
+  uint8_t Lbyte = Wire.read(); // read Low byte of data
   return ((int16_t)Hbyte << 8) | Lbyte;
   ; // Сдвигаем старший байт влево и добавляем младший байт
 }
@@ -56,8 +54,7 @@ void scanI2C()
 {
   byte error, address;
   int nDevices;
-
-  Serial.println("Scanning I2C...");
+  Serial.println(String(millis()) + " ====================================== Scanning I2C =========================================================");
 
   nDevices = 0;
   for (address = 8; address < 127; address++)
@@ -87,8 +84,7 @@ void scanI2C()
     Serial.println("No I2C devices found\n");
   else
     Serial.println("done\n");
-Serial.println("End scanning I2C...");
-
+  Serial.println(String(millis()) + " ================================== End scanning I2C =============================================================");
 }
 
 void scaner_i2c() // ---------------- Определение адресов устройств -----------------
@@ -100,7 +96,7 @@ void scaner_i2c() // ---------------- Определение адресов ус
   Serial.println();
   Serial.println("I2C scanner. Scanning ...");
   byte count = 0;
-  //Wire.begin();
+  // Wire.begin();
   for (byte i = 8; i < 120; i++)
   {
     Wire.beginTransmission(i);
@@ -163,7 +159,7 @@ void Write32_I2C(uint8_t address, int8_t registr, int32_t data)
 }
 void Write32F_I2C(uint8_t address, int8_t registr, float data)
 {
-  //Serial.print(" float = "); Serial.println(data, BIN);
+  // Serial.print(" float = "); Serial.println(data, BIN);
 
   uint8_t *pB = (uint8_t *)(&data);
   uint8_t LL_byte = pB[0];
@@ -197,8 +193,8 @@ uint16_t ReadWord_I2C_LE(uint8_t address, int8_t registr) // Обратный п
   int rezb = Wire.requestFrom(address, (uint8_t)2);
   if (rezb == 2)
   {
-    uint8_t Lbyte = Wire.read(); //read Low  byte of data
-    uint8_t Hbyte = Wire.read(); //read High byte of data
+    uint8_t Lbyte = Wire.read(); // read Low  byte of data
+    uint8_t Hbyte = Wire.read(); // read High byte of data
     return ((int16_t)Hbyte << 8) | Lbyte;
     ; // Сдвигаем старший байт влево и добавляем младший байт
   }

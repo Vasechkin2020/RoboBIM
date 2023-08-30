@@ -47,8 +47,8 @@ public:
 
 	// Read-based functions
 	int GetID(u8 ID, u8 &myID); // ONLY works for ID=0xFE (broadcast) and for single servo attached!! 
-	int GetPos(u8 ID); // get current pos 0~1000 (= 0~240�)
-	int ReadPos(u8 ID, s16 &pos); // get current pos 0~1000 (= 0~240�)
+	int GetPos(u8 ID, s16 &pos); // get current pos 0~1000 (= 0~240�)
+	//int ReadPos(u8 ID, s16 &pos); // get current pos 0~1000 (= 0~240�)
 	int GetVin(u8 ID, u16 &vin); // get current Vin 4500mV~12000mV
 	int GetTemp(u8 ID, u8 &temp); // get current Temp 50~100�C
 	int GetAngleOffset(u8 ID, s8 &angoffset); // get current servo offset -125~+125 (-30�~+30�)
@@ -69,12 +69,12 @@ protected:
 
 private:
 	u32 flash_delay = 50; // some ms delay after each Flash Command to ensure it is properly written
-	u32 bus_turnaround_delay = 100; // some us delay after each Read Command to ensure bus turn-around
+	u32 bus_turnaround_delay = 500; // some us delay after each Read Command to ensure bus turn-around
 	int sizeTXbuf = 0;               //для хранения размера буфера команды на запрос данных с мотора
 	u8 LSSCheckSum(u8 buf[]);
 	int LSSIssueReadCMD(u8 ID, u8 CMD_opcode, u8 RX_buf_size, u8 *RX_buf);
-	int MvvIssueGetCMD(u8 ID, u8 CMD_opcode); // Отправляет команду на запрос данных
-	int MvvIssueReadCMD(u8 ID, u8 CMD_opcode, u8 RX_buf_size, u8 *RX_buf, u8 sizeTXbuf); // Считывает буфер с окомандой запроса и ответ и разбирает его
+	// int MvvIssueGetCMD(u8 ID, u8 CMD_opcode); // Отправляет команду на запрос данных
+	// int MvvIssueReadCMD(u8 ID, u8 CMD_opcode, u8 RX_buf_size, u8 *RX_buf, u8 sizeTXbuf); // Считывает буфер с окомандой запроса и ответ и разбирает его
 	
 	// Instruction Op-Codes:
 	#define LSS_MOVE_TIME_WRITE      1

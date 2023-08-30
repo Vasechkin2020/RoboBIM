@@ -5,7 +5,7 @@
  * LewanSoul LX-16A serial bus servos
  * Author: DUffman71
  *
- * Bugs? 
+ * Bugs?
  * - Why delay of flash_delay required for succsessive Flash commands properly excute???
  * - How much bus-turnaround delay is necessary between Read and Write commands?
  */
@@ -32,49 +32,49 @@ u8 LSSProtocol::LSSCheckSum(u8 buf[])
   return i;
 }
 
-int LSSProtocol::MvvIssueReadCMD( u8 ID, u8 CMD_opcode, u8 RX_buf_size, u8 *RX_buf, u8 sizeTXbuf)
-{
-  bool syntax_check = false;
-  int rx_size;
+// int LSSProtocol::MvvIssueReadCMD(u8 ID, u8 CMD_opcode, u8 RX_buf_size, u8 *RX_buf, u8 sizeTXbuf)
+// {
+//   bool syntax_check = false;
+//   int rx_size;
 
-  rx_size = readLSS(RX_buf, RX_buf_size);      // Read back 'answer CMD' from servo  СЧИТЫВАЕМ СОВМЕСТНЫЙ БУФЕР Возвразает сколько байт прочитали
-  //printf(" Buf= %u , Data= %i \n",RX_buf_size, rx_size);
-  //delayMicroseconds(bus_turnaround_delay); // Ensure serial bus turnaround happend
+//   rx_size = readLSS(RX_buf, RX_buf_size); // Read back 'answer CMD' from servo  СЧИТЫВАЕМ СОВМЕСТНЫЙ БУФЕР Возвразает сколько байт прочитали
+//   // printf(" Buf= %u , Data= %i \n",RX_buf_size, rx_size);
+//   // delayMicroseconds(bus_turnaround_delay); // Ensure serial bus turnaround happend
 
-  // for (byte i = 0; i < RX_buf_size; i++)
-  // {
-  //   printf(" %X", RX_buf[i]);
-  // }
-  // printf("\n");
-  syntax_check = (rx_size == RX_buf_size);
-  syntax_check = syntax_check && (RX_buf[sizeTXbuf + 0] == LSS_FRAME_HEADER);
-  syntax_check = syntax_check && (RX_buf[sizeTXbuf + 1] == LSS_FRAME_HEADER);
-  if (ID != 0xFE) // Broadcast Read CMD returns real ID
-  {
-    syntax_check = syntax_check && (RX_buf[sizeTXbuf + 2] == ID);
-  }
-  syntax_check = syntax_check && (RX_buf[sizeTXbuf + 3] == RX_buf_size - sizeTXbuf - 3);
-  syntax_check = syntax_check && (RX_buf[sizeTXbuf + 4] == CMD_opcode);
-  // Не буду делать эту проверку на чек сумму так как буфер тут состоит из двух буферов отправки команды и ответа
-  //syntax_check = syntax_check && (RX_buf[sizeTXbuf + RX_buf_size - 1] == LSSCheckSum(RX_buf));
+//   // for (byte i = 0; i < RX_buf_size; i++)
+//   // {
+//   //   printf(" %X", RX_buf[i]);
+//   // }
+//   // printf("\n");
+//   syntax_check = (rx_size == RX_buf_size);
+//   syntax_check = syntax_check && (RX_buf[sizeTXbuf + 0] == LSS_FRAME_HEADER);
+//   syntax_check = syntax_check && (RX_buf[sizeTXbuf + 1] == LSS_FRAME_HEADER);
+//   if (ID != 0xFE) // Broadcast Read CMD returns real ID
+//   {
+//     syntax_check = syntax_check && (RX_buf[sizeTXbuf + 2] == ID);
+//   }
+//   syntax_check = syntax_check && (RX_buf[sizeTXbuf + 3] == RX_buf_size - sizeTXbuf - 3);
+//   syntax_check = syntax_check && (RX_buf[sizeTXbuf + 4] == CMD_opcode);
+//   // Не буду делать эту проверку на чек сумму так как буфер тут состоит из двух буферов отправки команды и ответа
+//   // syntax_check = syntax_check && (RX_buf[sizeTXbuf + RX_buf_size - 1] == LSSCheckSum(RX_buf));
 
-  return syntax_check;
-}
+//   return syntax_check;
+// }
 
-int LSSProtocol::MvvIssueGetCMD(u8 ID, u8 CMD_opcode)
-{
-  u8 TX_buf[s_LSS_ALL_READ_CMDS + 3];
+// int LSSProtocol::MvvIssueGetCMD(u8 ID, u8 CMD_opcode)
+// {
+//   u8 TX_buf[s_LSS_ALL_READ_CMDS + 3];
 
-  TX_buf[0] = TX_buf[1] = LSS_FRAME_HEADER;
-  TX_buf[2] = ID;
-  TX_buf[3] = s_LSS_ALL_READ_CMDS;
-  TX_buf[4] = CMD_opcode;
-  TX_buf[5] = LSSCheckSum(TX_buf);
+//   TX_buf[0] = TX_buf[1] = LSS_FRAME_HEADER;
+//   TX_buf[2] = ID;
+//   TX_buf[3] = s_LSS_ALL_READ_CMDS;
+//   TX_buf[4] = CMD_opcode;
+//   TX_buf[5] = LSSCheckSum(TX_buf);
 
-  flushLSS();                       // Empty serial receive buffer
-  writeLSS(TX_buf, sizeof(TX_buf)); // Send Read Command for 'CMD_opcode'
-  return sizeof(TX_buf);  // Возвращаем размер отправленного буфера с командой
-}
+//   flushLSS();                       // Empty serial receive buffer
+//   writeLSS(TX_buf, sizeof(TX_buf)); // Send Read Command for 'CMD_opcode'
+//   return sizeof(TX_buf);            // Возвращаем размер отправленного буфера с командой
+// }
 
 int LSSProtocol::LSSIssueReadCMD(u8 ID, u8 CMD_opcode, u8 RX_buf_size, u8 *RX_buf)
 {
@@ -88,9 +88,21 @@ int LSSProtocol::LSSIssueReadCMD(u8 ID, u8 CMD_opcode, u8 RX_buf_size, u8 *RX_bu
   TX_buf[4] = CMD_opcode;
   TX_buf[5] = LSSCheckSum(TX_buf);
 
-  flushLSS();                       // Empty serial receive buffer
-  writeLSS(TX_buf, sizeof(TX_buf)); // Send Read Command for 'CMD_opcode'
-  rx_size = readLSS(RX_buf, RX_buf_size);      // Read back 'answer CMD' from servo  СЧИТЫВАЕМ СОВМЕСТНЫЙ БУФЕР
+  //flushLSS();                              // Empty serial receive buffer
+  writeLSS(TX_buf, sizeof(TX_buf));        // Send Read Command for 'CMD_opcode'
+  delayMicroseconds(bus_turnaround_delay); // Ensure serial bus turnaround happend
+  flushLSS();                              // Очищаем буфер еще раз, так как получили и то что отправили, так как ножки соединены и мы стираем отправленное
+
+  // ---------------------------------------------------------------------------------------------------------------------------------
+
+  rx_size = readLSS(RX_buf, RX_buf_size); // Read back 'answer CMD' from servo  СЧИТЫВАЕМ СОВМЕСТНЫЙ БУФЕР
+  // Для отладки печать буфера
+  // printf(" Для отладки печать буфера. \n");
+  // for (byte i = 0; i < RX_buf_size; i++)
+  // {
+  //   printf(" %X", RX_buf[i]);
+  // }
+  // printf("\n");
   delayMicroseconds(bus_turnaround_delay); // Ensure serial bus turnaround happend
 
   syntax_check = (rx_size == RX_buf_size);
@@ -125,7 +137,7 @@ int LSSProtocol::SetPos(u8 ID, u16 pos, u16 time) // Установка поло
   buf[7] = GET_LOW_BYTE(time);
   buf[8] = GET_HIGH_BYTE(time);
   buf[9] = LSSCheckSum(buf);
-  
+
   return writeLSS(buf, sizeof(buf));
 }
 
@@ -385,33 +397,43 @@ int LSSProtocol::GetID(u8 ID, u8 &myID)
   u8 RX_buf[s_LSS_ID_READ + 3];
   int syntax_check = LSSIssueReadCMD(ID, CMD_opcode, sizeof(RX_buf), RX_buf);
   myID = RX_buf[5];
+
   return syntax_check;
 }
 
-int LSSProtocol::GetPos(u8 ID)
+int LSSProtocol::GetPos(u8 ID, s16 &pos)
 {
   u8 CMD_opcode = LSS_POS_READ;
-  sizeTXbuf  = MvvIssueGetCMD(ID, CMD_opcode);
-  return sizeTXbuf;
-}
-
-int LSSProtocol::ReadPos(u8 ID, s16 &pos)
-{
-  u8 CMD_opcode = LSS_POS_READ;
-  u8 RX_buf[s_LSS_VIN_READ + 3 + sizeTXbuf];  // Обьявляем размер буфера, состоит из байт буфера отправленной команды и того что надо принять
-  int syntax_check = MvvIssueReadCMD(ID, CMD_opcode, sizeof(RX_buf), RX_buf, sizeTXbuf);
-  if (syntax_check)
-  {
-    //printf("All ok! Data - > ");
-  }
-  else
-  {
-    printf("All false! Data - > ");
-  }
-  
-  pos = BYTE_TO_HW(RX_buf[sizeTXbuf + 6], RX_buf[sizeTXbuf + 5]);  // Берем нужные байты со смещением на размер буфера команды
+  u8 RX_buf[s_LSS_POS_READ + 3];
+  int syntax_check = LSSIssueReadCMD(ID, CMD_opcode, sizeof(RX_buf), RX_buf);
+  pos = BYTE_TO_HW(RX_buf[6], RX_buf[5]); // Берем нужные байты со смещением на размер буфера команды
   return syntax_check;
 }
+
+//ФУНКЦИИ ПИСАЛ ПРОБУЯ ПЕРЕДЕЛАТЬ ПОД РАПРОС И ПОД ЧТЕНИЕ, ТАК КАК НЕ ПОНИМАЛ ЧТО БУФЕ ПРОЩЕ ОЧИЩАТЬ
+// int LSSProtocol::GetPosLVV(u8 ID)
+// {
+//   u8 CMD_opcode = LSS_POS_READ;
+//   sizeTXbuf = MvvIssueGetCMD(ID, CMD_opcode);
+//   return sizeTXbuf;
+// }
+
+// int LSSProtocol::ReadPosMVV(u8 ID, s16 &pos)
+// {
+//   u8 CMD_opcode = LSS_POS_READ;
+//   u8 RX_buf[s_LSS_VIN_READ + 3 + sizeTXbuf]; // Обьявляем размер буфера, состоит из байт буфера отправленной команды и того что надо принять
+//   int syntax_check = MvvIssueReadCMD(ID, CMD_opcode, sizeof(RX_buf), RX_buf, sizeTXbuf);
+//   if (syntax_check)
+//   {
+//     // printf("All ok! Data - > ");
+//   }
+//   else
+//   {
+//     printf("All false! Data - >  \n");
+//   }
+//   pos = BYTE_TO_HW(RX_buf[sizeTXbuf + 6], RX_buf[sizeTXbuf + 5]); // Берем нужные байты со смещением на размер буфера команды
+//   return syntax_check;
+// }
 
 int LSSProtocol::GetVin(u8 ID, u16 &vin)
 {
