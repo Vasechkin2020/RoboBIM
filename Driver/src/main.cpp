@@ -39,17 +39,17 @@ void setup()
     scanI2C();
     // set_TCA9548A(0);
     // scanI2C();
-    for (uint8_t i = 0; i < 5; i++)
-    {
-        set_TCA9548A(i);
-        Serial.print(" Slot = ");
-        Serial.println(i);
-        delay(1000);
-        scanI2C();
-        delay(1000);
-    }
+    // for (uint8_t i = 0; i < 5; i++)
+    // {
+    //     set_TCA9548A(i);
+    //     Serial.print(" Slot = ");
+    //     Serial.println(i);
+    //     delay(1000);
+    //     scanI2C();
+    //     delay(1000);
+    // }
 
-    delay(1000000);
+    // delay(1000000);
 
 #ifdef MOTOR
     initMotor(); // Начальная инициализация и настройка шаговых моторов
@@ -64,14 +64,8 @@ void setup()
 #endif
 
 #ifdef VL530L0X_def
-    // Sensor_VL53L0X_R.newAddress(0x30);
-    // Sensor_VL53L0X_R.setAddress(0x31);
-    // Wire.begin(); // Старт шины I2C
-
-    printf("Init_VL53L0X_Left \n");
-    Init_VL53L0X(Sensor_VL53L0X_L, 0x30); // Инициализация датчиков сверху
-    // printf("Init_VL53L0X_Right \n");
-    // Init_VL53L0X(Sensor_VL53L0X_R, 0x31); // Инициализация датчиков сверху
+    Init_VL53L0X(Sensor_VL53L0X_L, 0x29, multi_line_VL53L0X_L); // Инициализация датчиков сверху
+    Init_VL53L0X(Sensor_VL53L0X_R, 0x29, multi_line_VL53L0X_R); // Инициализация датчиков сверху
 #endif
 
 #ifdef REMOTEXY
@@ -86,7 +80,7 @@ void setup()
     initServo(); // Начальная инициализация и настройка сервомоторов
     // getServoId(); //
     // changeServoId(2,1); // Смена id сервомотора
-    setStartPosition(350, 350);
+    setStartPosition(341, 311);
     // delay(3000);
     //  setStartPosition(0,0); // Для начальной установки стоек чтобы не задекали ничего
     //  delay(3000000);
@@ -113,14 +107,13 @@ void setup()
 #endif
 
 #ifdef SPI_protocol
-    printf("initSPI_slave \n");
     initSPI_slave(); // Инициализация SPI_slave
-    printf("spi_slave_queue_Send \n");
+    // printf("spi_slave_queue_Send \n");
     // Тут надо подготовить структуру с 0 айди для первогораза отправки
     spi_slave_queue_Send(); // Configure receiver Первый раз закладываем данные чтобы как только мастер к нам обратиться было чем ответить
 #endif
 
-    Serial.println(String(millis()) + " End SetUp !!!");
+    Serial.println(String(millis()) + " ++++++++++++++++++++++++++++++++++++++++ End SetUp !!! +++++++++++++++++++++++++++++++++++++++");
 }
 
 int a, b;

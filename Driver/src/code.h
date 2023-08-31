@@ -17,6 +17,10 @@ led43 led2812; // Экземпляр класса
 VL53L0X Sensor_VL53L0X_L;
 VL53L0X Sensor_VL53L0X_R;
 
+float lazer_L = 0; // Данные с датчиков лазерных левого и правого
+float lazer_R = 0; // Данные с датчиков лазерных левого и правого
+
+
 #include "uzi.h"
 
 // Настройка пинов светодиодов
@@ -232,11 +236,9 @@ void printBody()
   printf(" Send cheksum= %i  \n --- \n", Driver2Data_send.cheksum);
 }
 
-float lazer_L = 0; // Данные с датчиков лазерных левого и правого
-float lazer_R = 0; // Данные с датчиков лазерных левого и правого
-
-uint32_t Read_VL53L0X(VL53L0X &sensor_)
+uint32_t Read_VL53L0X(VL53L0X &sensor_, byte line_)
 {
+	set_TCA9548A(line_);
   uint32_t rez = 0;
   // float rez = sensor.readRangeContinuousMillimeters();
   if ((sensor_.readReg(0x13) & 0x07) != 0)
@@ -251,10 +253,11 @@ uint32_t Read_VL53L0X(VL53L0X &sensor_)
   return rez;
 }
 // Инициализация левого датчика с адресом 0x30
-void Init_VL53L0X(VL53L0X &sensor_, byte adr)
+void Init_VL53L0X(VL53L0X &sensor_, byte adr, byte line_)
 {
   Serial.println(" ======================================== Init_VL53L0X ===================================");
 
+  set_TCA9548A(line_);
   sensor_.setTimeout(1000); // Время на выполения функций конфигурации если превышено выдает ошибку
   sensor_.newAddress(adr);
 
@@ -267,25 +270,12 @@ void Init_VL53L0X(VL53L0X &sensor_, byte adr)
   }
   else
   {
-    Serial.print(" Не нашли на адресе ");
+    Serial.print(" Линия ");
+    Serial.print(line_);
+    Serial.print(" . Не нашли на адресе");
     Serial.print(adr, HEX);
-    // Serial.print(". Пробуем установить 0x29 и заменить на ");
-    // Serial.println(adr, HEX);
-
-    // sensor_.newAddress(0x29);
-    // sensor_.setAddress(adr);
-    // if (sensor_.init())
-    // {
-    //   Serial.println("Init_VL53L0X OK !!!");
-    //   sensor_.startContinuous();
-    //   sensor_.setMeasurementTimingBudget(25000);
-    // }
-    // else
-    // {
-    //   Serial.println(" !!!!!!!!!!!!!!!!!! Failed to detect and initialize sensor!");
-    //   delay(9999);
-    // }
     Serial.println(" !!!!!!!!!!!!!!!!!! Failed to detect and initialize sensor!");
+    delay(2000);
   }
   byte address = sensor_.readReg(0x8A);
   Serial.print(" address = ");
@@ -296,23 +286,22 @@ void Init_VL53L0X(VL53L0X &sensor_, byte adr)
 
   // uint8_t address_I2C = sensor_.getAddress();
   // printf("Adress i2c= %i ", address_I2C);
-  delay(1000);
+  // delay(1000);
 
-  Serial.println("End Init_VL53L0X Left.");
+  Serial.println("End Init_VL53L0X ");
 }
 
 void loop_VL53L0X()
 {
 
-  float lazer_L_temp = Read_VL53L0X(Sensor_VL53L0X_L) / 1000.0; // Преобразуем в метры
-  //float lazer_R_temp = Read_VL53L0X(Sensor_VL53L0X_R) / 1000.0; // Преобразуем в метры
+  float lazer_L_temp = Read_VL53L0X(Sensor_VL53L0X_L, multi_line_VL53L0X_L) / 1000.0; // Преобразуем в метры
+  float lazer_R_temp = Read_VL53L0X(Sensor_VL53L0X_R, multi_line_VL53L0X_R) / 1000.0; // Преобразуем в метры
 
   // lazer_L = (lazer_L_temp * 0.66) + (lazer_L * 0.34); // Небольшое сглаживание с прошлым результатом Можно отфильтровать Калманом если нужно
   // lazer_R = (lazer_R_temp * 0.66) + (lazer_R * 0.34); // Небольшое сглаживание с прошлым результатом Можно отфильтровать Калманом если нужно
 
   lazer_L = filtr_My(lazer_L, lazer_L_temp, 0.90);
-  lazer1.distance = lazer_L;
-  //lazer_R = filtr_My(lazer_R, lazer_R_temp, 0.90);
+  lazer_R = filtr_My(lazer_R, lazer_R_temp, 0.90);
 
   // lazer_L = lazer_L_temp;
   // lazer_R = lazer_R_temp;
@@ -320,14 +309,15 @@ void loop_VL53L0X()
   // Ограничение в 1 метр
   if (lazer_L > 1)
     lazer_L = 1.111;
-  // if (lazer_R > 1)
-  //   lazer_R = 1.111;
+  if (lazer_R > 1)
+    lazer_R = 1.111;
 
-  // Serial.printf(" lazer1.distance = %f \n", lazer1.distance);
-  //Serial.print(lazer_L, 3);
-  // Serial.print(" Sensor_VL53L0X_R = ");
-  // Serial.print(lazer_R, 3);
-  // Serial.println("");
+  lazer1.distance = lazer_L;
+  lazer2.distance = lazer_R;
+
+  // Serial.printf(" lazer1.distance = %f ", lazer1.distance);
+  // Serial.printf(" lazer2.distance = %f \n", lazer2.distance);
+
 }
 
 void min_1()

@@ -65,7 +65,7 @@ IRAM_ATTR void rx_ok(spi_slave_transaction_t *trans) // IRAM_ATTR Добавит
 
 void initSPI_slave()
 {
-    Serial.println("Control Slave_SPI init !");
+    Serial.println("========================= initSPI_slave =================================== ");
     pinMode(PIN_NUM_MISO, OUTPUT); // Линия на выход
     // ПО умолчанию все к минусу кроме чипселект
     pinMode(PIN_NUM_MOSI, INPUT_PULLDOWN); // Линия на вход подтянута к минусу

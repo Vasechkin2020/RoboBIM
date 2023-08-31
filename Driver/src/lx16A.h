@@ -20,7 +20,7 @@ LSServo SERVO;
 // Функция инициализации последовательного порта 2 для сервомоторов
 void initServo()
 {
-  Serial.println(String(millis()) + " Start initServo ...");
+  Serial.println(String(millis()) + " ====================================== Start initServo ======================================");
 
   Serial2.begin(115200);
   pinMode(16, INPUT_PULLUP);      // RX
@@ -192,6 +192,7 @@ void testServo2()
 }
 void setStartPosition(uint16_t leftPos_, uint32_t rightPos_)
 {
+  Serial.printf(" ============================================ setStartPosition ============================================\n");
   Serial.printf("Установка сервомоторов платформы в начальную позицию. Левый = %i Правый= %i . \n",leftPos_,rightPos_);
   runServo_LP(leftPos_);
   runServo_RP(rightPos_);

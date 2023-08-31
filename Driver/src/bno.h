@@ -270,6 +270,7 @@ BNO055LinAccData_s BNO055_LinAccData;
 
 void BNO055_SetMode(byte mode_)
 {
+	set_TCA9548A(multi_line_BNO);
 	WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_OPR_MODE, mode_); // | eFASTEST_MODE);  /* Go to config mode if not there */
 	Serial.print("=> BNO055_SetMode <= ");
 	Serial.println(mode_);
@@ -277,6 +278,7 @@ void BNO055_SetMode(byte mode_)
 }
 bool BNO055_getCalibration()
 {
+	set_TCA9548A(multi_line_BNO);
 	uint8_t calData = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_CALIB_STAT);
 	BNO055.Calibr_sys = (calData >> 6) & 0x03;
 	Serial.print(" Calibr_sys  : ");
@@ -310,6 +312,7 @@ bool BNO055_getCalibration()
 
 bool BNO055_getCalibrationStart()
 {
+	set_TCA9548A(multi_line_BNO);
 	uint8_t calData = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_CALIB_STAT);
 	BNO055.Calibr_sys = (calData >> 6) & 0x03;
 	Serial.print(" Calibr_sys  : ");
@@ -343,6 +346,7 @@ bool BNO055_getCalibrationStart()
 
 void BNO055_readEuler()
 {
+	set_TCA9548A(multi_line_BNO);
 	// PIN_A_1_HIGH
 	// long a, b, c, d;
 	uint8_t xHigh = 0, xLow = 0, yLow, yHigh, zLow, zHigh;
@@ -418,6 +422,7 @@ void BNO055_readEuler()
 }
 void BNO055_readLinear()
 {
+	set_TCA9548A(multi_line_BNO);
 	// PIN_A_1_HIGH
 	// long a, b, c, d;
 	uint8_t xHigh = 0, xLow = 0, yLow, yHigh, zLow, zHigh;
@@ -475,6 +480,8 @@ void BNO055_readLinear()
 void BNO055_getStatusInfo()
 {
 	Serial.println(" ===================================== BNO055_getStatusInfo ===========================================");
+	set_TCA9548A(multi_line_BNO);
+	
 	Serial.println("BNO055.BNO055_getStatusInfo:");
 	WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
 
@@ -548,6 +555,7 @@ void BNO055_getStatusInfo()
 void BNO055_getRevInfo()
 {
 	Serial.println(" ===================================== BNO055_getRevInfo ===========================================");
+	set_TCA9548A(multi_line_BNO);
 	uint8_t a, b;
 	WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
 
@@ -614,6 +622,7 @@ void BNO055_SetOffset_toEeprom()
 void BNO055_GetOffset_fromEeprom()
 {
 	Serial.println("BNO055_GetOffset_fromEeprom");
+
 	if (EEPROM.readByte(0) == 1) // Если есть поправочные значения то считываем их
 	{
 		for (uint8_t i = 0; i < 22; i++)
@@ -646,6 +655,7 @@ void BNO055_GetOffset_fromEeprom()
 void BNO055_GetOffset_from_BNO055()
 {
 	Serial.println("BNO055_GetOffset_from_BNO055");
+	set_TCA9548A(multi_line_BNO);
 
 	BNO055_SetMode(eCONFIGMODE); /* Go to config mode if not there */
 
@@ -677,7 +687,7 @@ void BNO055_GetOffset_from_BNO055()
 void BNO055_SetOffset_toBNO055()
 {
 	Serial.println("BNO055_SetOffset_toBNO055");
-
+	set_TCA9548A(multi_line_BNO);
 	BNO055_SetMode(eCONFIGMODE); /* Go to config mode if not there */
 
 	for (uint8_t i = 0; i < 22; i = i + 2)
@@ -763,6 +773,7 @@ void BNO055_Start()
 {
 	
 	Serial.println(" ======================================== BNO055_Start ===================================");
+	set_TCA9548A(multi_line_BNO);
 
 	BNO055_SetMode(eNDOF_FMC_OFF); // Режим работы где он все сам считает	  eIMU
 	delay(100);
@@ -777,6 +788,7 @@ void BNO055_Start()
 
 void Calibrovka_BNO055_Start()
 {
+	set_TCA9548A(multi_line_BNO);
 	BNO055_SetMode(eNDOF_FMC_OFF); // Режим работы где он все сам считает	  eIMU
 
 	Serial.println("Calibrovka_BNO055_Start...");
@@ -789,6 +801,7 @@ void Calibrovka_BNO055_Start()
 
 void Calibrovka_BNO055()
 {
+	set_TCA9548A(multi_line_BNO);
 	BNO055_SetMode(eNDOF_FMC_OFF); // Режим работы где он все сам считает	  eIMU
 
 	Serial.println("Calibrovka_BNO055...");
@@ -810,7 +823,7 @@ void ReadCalibrovka_BNO055()
 void Init_BNO055()
 {
 	Serial.println(" ============================================ Init_BNO055 ===========================================");
-
+  	set_TCA9548A(multi_line_BNO);
 	// pinMode(PIN_BNO055_Mode, OUTPUT);
 	// digitalWrite(PIN_BNO055_Mode, 1);     // Подаем 1 что-бы адрес был всегда один и тоже   /* 0x28 com3 low 0x29 com3 high     */
 
@@ -887,7 +900,7 @@ void Init_BNO055()
 
 void Setup_BNO055()
 {
-	Serial.println(String(millis()) + " ===============================================================================================");
+	Serial.println(String(millis()) + " =========================================== Setup_BNO055 ====================================================");
 	Init_BNO055();
 	// Calibrovka_BNO055();
 	ReadCalibrovka_BNO055();

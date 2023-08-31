@@ -47,7 +47,7 @@ void interuptUzi()
 // Инициализация пинов и прерывания
 void init_Uzi()
 {
-    Serial.print("init_Uzi... ");
+    Serial.println("======================================= init_Uzi ===================================== ");
     pinMode(TrigPin, OUTPUT);
     digitalWrite(TrigPin, LOW);
 
@@ -81,9 +81,7 @@ void loopUzi()
         // distance_uzi = (distance_uzi_temp * 0.90) + (distance_uzi * 0.10); // Небольшое сглаживание показаний
         distance_uzi = filtr_My(distance_uzi, distance_uzi_temp, 0.9);
         uzi1.distance = distance_uzi;
-        // Serial.print(" UZI Good !");
-        // Serial.print(" distance = ");
-        // Serial.println(distance_uzi);
+        //Serial.printf(" UZI Good ! distance = ", distance_uzi);
     }
     // Отмена ожидания данных от датчика по таймауту
     if (Flag_uzi_wait) // если ждем данные
