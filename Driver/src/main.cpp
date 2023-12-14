@@ -4,7 +4,7 @@
 
 // #define MOTOR yes
 //  #define REMOTEXY yes
-#define BNO_def yes
+// #define BNO_def yes
 #define SPI_protocol yes
 //  #define LED_def yes
 #define MOTOR_SERVO_def yes
@@ -36,10 +36,10 @@ void setup()
     Serial.println(String(millis()) + " End init I2C ...");
 
     // Поиск устройств на шине I2C
-    scanI2C();
-    // set_TCA9548A(0);
     // scanI2C();
-    // for (uint8_t i = 0; i < 5; i++)
+    // // set_TCA9548A(0);
+    // // scanI2C();
+    // for (uint8_t i = 0; i < 8; i++)
     // {
     //     set_TCA9548A(i);
     //     Serial.print(" Slot = ");

@@ -357,9 +357,15 @@ void sec_1()
 
 #ifdef RCWL1601_def
     // Serial.print(" distance = ");
-    // Serial.println(distance_uzi);
+    // Serial.print(distance_uzi);
 #endif
 
+#ifdef VL530L0X_def
+    // Serial.print(" distance lazerL= ");
+    // Serial.print(lazer_L);
+    // Serial.print(" distance lazerR= ");
+    // Serial.println(lazer_R);
+#endif
     // printRemoteXY();
     // printBody();
   }

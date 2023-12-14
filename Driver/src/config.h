@@ -41,9 +41,9 @@ hw_timer_t *timer1 = NULL;
 hw_timer_t *timer2 = NULL;
 hw_timer_t *timer3 = NULL;
 
-#define multi_line_BNO 0       // На какой линии мультиплексора находится датчик BNO055
-#define multi_line_VL53L0X_L 1 // На какой линии мультиплексора находится датчик VL53L0X
-#define multi_line_VL53L0X_R 2 // На какой линии мультиплексора находится датчик VL53L0X
+#define multi_line_BNO 2       // На какой линии мультиплексора находится датчик BNO055
+#define multi_line_VL53L0X_L 3 // На какой линии мультиплексора находится датчик VL53L0X
+#define multi_line_VL53L0X_R 4 // На какой линии мультиплексора находится датчик VL53L0X
 
 #define Addr_TCA9548A 0x70 // Адреc платы мультиплексора шины I2C
 // Функция устанавляивающая нужное положение на мультиплексоре

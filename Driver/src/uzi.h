@@ -1,7 +1,7 @@
 #ifndef UZI_H
 #define UZI_H
 
-#define TrigPin 12
+#define TrigPin 27
 #define EchoPin 35
 #define TIME_WAIT_UZI 40000 // Время которое ждем данные, они могут не придти и потеряться 50 милисекунд
 
