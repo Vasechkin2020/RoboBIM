@@ -2,362 +2,298 @@
 #define MOTOR_H
 
 //---------------------------------------------------------------------------------------
-#define PIN_En 25 //
+#define SPEED 0.5   // Скорость на всех моторах одинаковая максимально возможная, что-бы перемещаться как можно быстрее оборотов за секунду rps
+#define MICROSTEP 8 // Микрошаг на драйверах
+#define REDUKTOR 10 // Параметры Редуктора
 //---------------------------------------------------------------------------------------
-#define PIN_L_Step 26 //
-#define PIN_L_Dir 27  //
+#define PIN_Motor_En 32 //
 //---------------------------------------------------------------------------------------
-#define PIN_R_Step 32 //
-#define PIN_R_Dir 33  //
-
-#define DIAMETR 66 // Влияет на правильность длинны через расчет скорости
-#define RADIUS (DIAMETR / 2)
-#define PERIMETR (DIAMETR * PI)
-#define DISTANCE_WHEELS 0.186 // Растояние между колесами робота. подобрал экспериментально Влияет на правильность круга
-#define MAX_SPEED 0.6
-
-
-#define ACCELERATION_UP 0.5    // Ускорение машинки константа в метрах в секунду
-#define ACCELERATION_DOWN -0.3 // Торможение машинки константа в метрах в секунду
+#define PIN_M0_Step 33 //
+#define PIN_M0_Dir 25  //
 //---------------------------------------------------------------------------------------
+#define PIN_M1_Step 26 //
+#define PIN_M1_Dir 27  //
+//---------------------------------------------------------------------------------------
+#define PIN_M2_Step 15 //
+#define PIN_M2_Dir 13  //
+//---------------------------------------------------------------------------------------
+#define PIN_M3_Step 14 //
+#define PIN_M3_Dir 12  //
+//---------------------------------------------------------------------------------------
+#define TRANSFORM_M0 225  // // Углы для трансформации локальной системы в глобальную, зависят от места установки мотора. УКАЗЫВАЮ КУДА СМОТРИТ 0 локальной системы в системе координат 360 градусов плюс по часовой
+#define TRANSFORM_M1 315  //
+#define TRANSFORM_M2 45  //
+#define TRANSFORM_M3 135  //
+//---------------------------------------------------------------------------------------
+#define MICRIC_M0 34  //
+#define MICRIC_M1 35  //
+#define MICRIC_M2 36  //
+#define MICRIC_M3 39  //
 
-bool flag_motor_L_EN = 0;             //Флаг работает или нет Левый мотор
-bool flag_motor_R_EN = 0;             //Флаг работает или нет Правый мотор
-bool flag_command_stop_motor = false; // Флаг что команда остановиться была и нужно отследить время чтобы их отключить
+//************************ ОБЬЯВЛЕНИЕ ФУНКЦИЙ *******************************************
+void IRAM_ATTR onTimer1();
+int iiRound(double number);                    // ИИ функция округления до целого
+void initMotor();                              // Функция инциализации моторов
+int32_t getPulse(float _angle);                // Пересчет градусов в импульсы
+float getAngle(int32_t _pulse);                // Пересчет импульсов в градусы
+void setMotorAngle(int32_t num, float _angle); // Установка мотора в нужное положение в градусах
+void setSpeedMotor(float _speed);              // Функция устанавлявающая скорость вращения на ВСЕХ моторах, задается в оборотах за секунду rps
+void disableMotor();                           // Отключение моторов в простое
 
-uint64_t time_command_stop_motor = 0; // Время в которое дали команду остановиться моторам
+//***************************************************************************************
 
-int microStep;      // Число микрошагов
-int Timeing_Step_L; // Число тактов для таймера через которое нужно дать новый имульс мотору
-int Timeing_Step_R; // Число тактов для таймера через которое нужно дать новый имульс мотору
+const float sector = 360.0 / 200 / REDUKTOR / MICROSTEP; // Столько градусов приходится на 1 импульс
 
-//Одометрия
-float speed_L_fact; //Скорость на моторе фактически установленная
-float speed_R_fact; //Скорость на моторе фактически установленная
+int32_t countPulse = 0; // Счетчик импульсов
+//bool flagPrintInterrupt = false; // Флаг в режиме колибровки включать печать срабатывания прерывния
 
-float odom_way_L = 0; //Пройденный путь левым колесом с учетом направления вращения
-float odom_way_R = 0; //Пройденный путь правым колесом с учетом направления вращения
-float odom_way_C = 0; //Пройденный путь правым колесом с учетом направления вращения
+//bool flag_command_stop_motor = false; // Флаг что команда остановиться была и нужно отследить время чтобы их отключить
+//uint64_t time_command_stop_motor = 0; // Время в которое дали команду остановиться моторам
 
-int16_t odom_impuls_L = 0; // Количество ипульсов переданных колесу с учетом направления вращения
-int16_t odom_impuls_R = 0; // Количество ипульсов переданных колесу с учетом направления вращения
 
-int8_t odom_dir_L = 0; //Направление вращения левого колеса в данный момент 1- вперед, -1 - назад, 0 стоим на месте
-int8_t odom_dir_R = 0; //Направление вращения правого колеса в данный момент 1- вперед, -1 - назад, 0 стоим на месте
+int microStep;   // Число микрошагов
+int timeingStep; // Число тактов для таймера через которое нужно дать новый имульс мотору
 
-uint16_t time_speed = 0;       // время в течении которого надо двигаться
-uint64_t time_speed_start = 0; // время в который момент начали движение
-bool time_speed_flag = 0;      // Флаг что надо отслеживать движение по времени
-
-// Считаем одометрию Амперсанд перед переменной значит ссылка на нее
-void set_odom_impuls(int8_t odom_dir_, int16_t &odom_impuls_)
+// ИИ функция округления до целого
+int iiRound(double number)
 {
-    if (odom_dir_ == 1)
-    {
-        odom_impuls_++;
-    }
-    if (odom_dir_ == -1)
-    {
-        odom_impuls_--;
-    }
-}
-//Функция исполняемая по прерыванию по таймеру 1 ЛЕВЫЙ МОТОР
-void IRAM_ATTR onTimer1() // Обработчик прерывания таймера 0 по совпадению A
-{
-    if (flag_motor_L_EN) // Если флаг вращения моторов включен тогда делаем импульс
-    {
-        digitalWrite(PIN_L_Step, 1);
-        delayMicroseconds(1);
-        timerAlarmWrite(timer1, Timeing_Step_L, true); // Устанавливаем период прерывания по таймеру
-        set_odom_impuls(odom_dir_L, odom_impuls_L);    // Считаем ипульсы для одометрии типа как энкодер
-        digitalWrite(PIN_L_Step, 0);
-    }
-}
-//Функция исполняемая по прерыванию по таймеру 2 ПРАВЫЙ МОТОР
-void IRAM_ATTR onTimer2() // Обработчик прерывания таймера 0 по совпадению A
-{
-    if (flag_motor_R_EN) // Если флаг вращения моторов включен тогда делаем импульс
-    {
-        digitalWrite(PIN_R_Step, 1);
-        delayMicroseconds(1);
-        timerAlarmWrite(timer2, Timeing_Step_R, true); // Устанавливаем период прерывания по таймеру
-        set_odom_impuls(odom_dir_R, odom_impuls_R);    // Считаем ипульсы для одометрии типа как энкодер
-        digitalWrite(PIN_R_Step, 0);
-    }
+    return static_cast<int>(number > 0 ? number + 0.5 : number - 0.5);
 }
 
-// Функция устанавлявающая скорость вращения на левом моторе
-void setSpeed_L(float _speed)
-{
-    // printf(" setSpeed_L= %f \n", _speed);
-    if (_speed == 0)
-    {
-        flag_motor_L_EN = false; //Флаг ставим что мотор не работает, просто перестаем делать импульсы
-    }
-    else
-    {
-        flag_command_stop_motor = false; //Отменяем выключение драйверов с задержкой
-        digitalWrite(PIN_En, 0);         //Включаем драйвера
-        if (_speed > MAX_SPEED)
-            _speed = MAX_SPEED;
-        if (_speed < -MAX_SPEED)
-            _speed = -MAX_SPEED;
-        //Задаем направление вращения
-        if (_speed < 0)
-        {
-            digitalWrite(PIN_L_Dir, 0);
-            odom_dir_L = -1; // Тут назначаем куда вращаемся для одометрии для левого и праввого колеса может быть надо по разному
-        }
-        if (_speed > 0)
-        {
-            digitalWrite(PIN_L_Dir, 1);
-            odom_dir_L = 1; // Тут назначаем куда вращаемся для одометрии для левого и праввого колеса может быть надо по разному
-        }
-
-        float step_za_sec = ((abs(_speed) * 1000) / PERIMETR * 360 / 1.8); //Скорость приводим в милиметры и делим на периметр колеса получаем обороты их умножаем на градусы и делим на градус на 1 шаг получаем нужное число полных шагов для такой скорости за секунду
-        //Serial.print(" step_za_sec= ");
-        //Serial.println (step_za_sec);
-
-        // Микросекунды в секунде делим на число шагов которые надо успеть сделать за секунду и делим на микрошаги делим на микросекунды за 1 шаг с учетом предделителя таймера
-        Timeing_Step_L = (float)1000000 / step_za_sec / microStep / 1.0; // Таймер по 1 микросекунде
-        flag_motor_L_EN = true;                                          //Взводим флаг разрешающий делать импульсы в обработчике прерывания
-    }
-    speed_L_fact = _speed; //Запоминаем скорость с которой установили вращаться мотору
-}
-
-// Функция устанавлявающая скорость вращения на правом моторе
-void setSpeed_R(float _speed)
-{
-    // printf(" setSpeed_R= %f \n", _speed);
-    if (_speed == 0)
-    {
-        flag_motor_R_EN = false; //Флаг ставим что мотор не работает это чтобы импульс не подавался
-    }
-    else
-    {
-        flag_command_stop_motor = false; //Отменяем выключение драйверов с задержкой
-        digitalWrite(PIN_En, 0);         //Включаем драйвера
-        if (_speed > MAX_SPEED)
-            _speed = MAX_SPEED;
-        if (_speed < -MAX_SPEED)
-            _speed = -MAX_SPEED;
-        //Задаем направление вращения
-        if (_speed < 0)
-        {
-            digitalWrite(PIN_R_Dir, 0);
-            odom_dir_R = -1; // Тут назначаем куда вращаемся для одометрии для левого и правого колеса может быть надо по разному
-        }
-        if (_speed > 0)
-        {
-            digitalWrite(PIN_R_Dir, 1);
-            odom_dir_R = 1; // Тут назначаем куда вращаемся для одометрии для левого и правого колеса может быть надо по разному
-        }
-
-        float step_za_sec = ((abs(_speed) * 1000) / PERIMETR * 360 / 1.8); //Скорость приводим в милиметры и делим на периметр колеса получаем обороты их умножаем на градусы и делим на градус на 1 шаг получаем нужное число полных шагов для такой скорости за секунду
-        //Serial.print(" step_za_sec= ");
-        //Serial.println(step_za_sec);
-
-        // Микросекунды в секунде делим на число шагов которые надо успеть сделать за секунду и делим на микрошаги делим на микросекунды за 1 шаг с учетом предделителя таймера
-        Timeing_Step_R = (float)1000000 / step_za_sec / microStep / 1.0; // Таймер по 1 микросекунде
-        flag_motor_R_EN = true;                                          //Взводим флаг разрешающий делать импульсы в обработчике прерывания
-    }
-    speed_R_fact = _speed; //Запоминаем скорость с которой установили вращаться мотору
-}
-
-//Остановка моторов  и установкка времени задержки выключения драйверов
-void stopMotor()
-{
-    setSpeed_L(0);
-    setSpeed_R(0);
-    g_speed = 0;  // Для одометрии скорость ставим 0
-    g_radius = 0; // Для одометрии радиус ставим 0
-    //Отсрочка выключения драйверов чтобы не грелись и электричество не потребляли
-    time_command_stop_motor = millis();
-    flag_command_stop_motor = true; //Взводим флаг выключение драйверов с задержкой в таймере
-}
-
-//Инициализация таймера 1. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
-void initTimer_1()
-{
-    timer1 = timerBegin(1, 80, true);              // Номер таймера, делитель(прескаллер), Считать вверх, прибавлять (true)  Частота базового сигнала 80  Мега герц, значит будет 1 микросекунда
-    timerAttachInterrupt(timer1, &onTimer1, true); // Какой таймер используем, какую функцию вызываем,  тип прерывания  edge или level interrupts
-    timerAlarmWrite(timer1, 100000, true);         // Какой таймер, до скольки считаем , сбрасываем ли счетчик при срабатывании. 1000 микросекунд эти 1 милисекунда
-    timerAlarmEnable(timer1);                      // Запускаем таймер
-}
-//Инициализация таймера 1. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
-void initTimer_2()
-{
-    timer2 = timerBegin(2, 80, true);              // Номер таймера, делитель(прескаллер), Считать вверх, прибавлять (true)  Частота базового сигнала 80  Мега герц, значит будет 1 микросекунда
-    timerAttachInterrupt(timer2, &onTimer2, true); // Какой таймер используем, какую функцию вызываем,  тип прерывания  edge или level interrupts
-    timerAlarmWrite(timer2, 100000, true);         // Какой таймер, до скольки считаем , сбрасываем ли счетчик при срабатывании. 1000 микросекунд эти 1 милисекунда
-    timerAlarmEnable(timer2);                      // Запускаем таймер
-}
-
+// Функция инциализации моторов
 void initMotor()
 {
     //**************************************************************   Мотор на колеса
-    microStep = 8; // Так распаяно на плате для драйверов 2208 и 2209
-    printf("Init StepMotor1. Set microstep = %i \n", microStep);
-    Serial.print("Init StepMotor2. Set microstep = ");
-    Serial.println(microStep);
+    microStep = MICROSTEP; // Так распаяно на плате для драйверов 2208 и 2209
+    printf("Init StepMotor. Set microstep = %i \n", microStep);
 
-    pinMode(PIN_En, OUTPUT);
-    digitalWrite(PIN_En, 1); // 0- Разрешена работа 1- запрещена работа драйвера
+    pinMode(PIN_Motor_En, OUTPUT); // Установка пина разрешающего работу драйвероы
+    digitalWrite(PIN_Motor_En, 1); // 0- Разрешена работа 1- запрещена работа драйвера
 
-    pinMode(PIN_L_Step, OUTPUT); // Устанавливаем пины для левого мотора
-    digitalWrite(PIN_L_Step, 0); // Подтяжка чтобы не в воздухе
-    pinMode(PIN_L_Dir, OUTPUT);
-    digitalWrite(PIN_L_Dir, 0); //  Подтяжка чтобы не в воздухе сделал резистором на плате что-бы при перезагрузке не дергалось
+    pinMode(PIN_M0_Step, OUTPUT); // Устанавливаем пины для M1 мотора
+    digitalWrite(PIN_M0_Step, 0); // Подтяжка чтобы не в воздухе
+    motor[0].step_pin = PIN_M0_Step;
+    pinMode(PIN_M0_Dir, OUTPUT);
+    digitalWrite(PIN_M0_Dir, 0); //  Подтяжка чтобы не в воздухе сделал резистором на плате что-бы при перезагрузке не дергалось
+    motor[0].dir_pin = PIN_M0_Dir;
 
-    pinMode(PIN_R_Step, OUTPUT); // Устанавливаем пины для правого мотора
-    digitalWrite(PIN_R_Step, 0); // Подтяжка чтобы не в воздухе
-    pinMode(PIN_R_Dir, OUTPUT);
-    digitalWrite(PIN_R_Dir, 0); //  Подтяжка чтобы не в воздухе сделал резистором на плате что-бы при перезагрузке не дергалось
+    pinMode(PIN_M1_Step, OUTPUT); // Устанавливаем пины для M4  мотора
+    digitalWrite(PIN_M1_Step, 0); // Подтяжка чтобы не в воздухе
+    motor[1].step_pin = PIN_M1_Step;
+    pinMode(PIN_M1_Dir, OUTPUT);
+    digitalWrite(PIN_M1_Dir, 0); //  Подтяжка чтобы не в воздухе сделал резистором на плате что-бы при перезагрузке не дергалось
+    motor[1].dir_pin = PIN_M1_Dir;
 
-    flag_motor_L_EN = false;         //Флаг ставим что мотор не работает, просто перестаем делать импульсы
-    flag_motor_R_EN = false;         //Флаг ставим что мотор не работает, просто перестаем делать импульсы
-    flag_command_stop_motor = false; //Отменяем выключение драйверов с задержкой
+    pinMode(PIN_M2_Step, OUTPUT); // Устанавливаем пины для M2 мотора
+    digitalWrite(PIN_M2_Step, 0); // Подтяжка чтобы не в воздухе
+    motor[2].step_pin = PIN_M2_Step;
+    pinMode(PIN_M2_Dir, OUTPUT);
+    digitalWrite(PIN_M2_Dir, 0); //  Подтяжка чтобы не в воздухе сделал резистором на плате что-бы при перезагрузке не дергалось
+    motor[2].dir_pin = PIN_M2_Dir;
 
-    initTimer_1(); //Таймер на 1 мотор
-    initTimer_2(); //Таймер на 2 мотор
-    // setSpeed_R(0.5);
-    // setSpeed_L(0.5);
-    // Serial.println("Test Motor");
-    // while (1);
+    pinMode(PIN_M3_Step, OUTPUT); // Устанавливаем пины для M3 мотора
+    digitalWrite(PIN_M3_Step, 0); // Подтяжка чтобы не в воздухе
+    motor[3].step_pin = PIN_M3_Step;
+    pinMode(PIN_M3_Dir, OUTPUT);
+    digitalWrite(PIN_M3_Dir, 0); //  Подтяжка чтобы не в воздухе сделал резистором на плате что-бы при перезагрузке не дергалось
+    motor[3].dir_pin = PIN_M3_Dir;
+
+    motor[0].globalTransform = TRANSFORM_M0;
+    motor[1].globalTransform = TRANSFORM_M1;
+    motor[2].globalTransform = TRANSFORM_M2;
+    motor[3].globalTransform = TRANSFORM_M3;
+
+    motor[0].micric_pin = MICRIC_M0;
+    motor[1].micric_pin = MICRIC_M1;
+    motor[2].micric_pin = MICRIC_M2;
+    motor[3].micric_pin = MICRIC_M3;
+
+    motor[0].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
+    motor[1].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
+    motor[2].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
+    motor[3].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
 }
 
-//Функция задержки выключения моторов после команды стоп на 1 секунду для экономии энергии и чтобы не грелись
-void delayMotor()
+// Функция исполняемая по прерыванию по таймеру 1 на все МОТОРЫ
+void IRAM_ATTR onTimer1() // Обработчик прерывания таймера 0 по совпадению A
 {
-    // Отслеживания времени отключить драйвера на моторах чтобы не грелись и не потребляли энергию
-    if (flag_command_stop_motor)
+    digitalWrite(2, 1);
+    // countPulse++;
+
+    for (int i = 0; i < 4; i++)
     {
-        if (millis() - time_command_stop_motor > 1000) // Если с момента остановки моторов прошло более 1000 милисекунд (1 секунда) и флаг не изменился другой командой
+        if (motor[i].status)
         {
-            flag_command_stop_motor = false; //Заканчиваем отслеживать
-            digitalWrite(PIN_En, 1);         //Выключаем драйвера
+            if (motor[i].position == motor[i].destination)
+            {
+                motor[i].status = 0;
+            }
+            else
+            {
+                digitalWrite(motor[i].step_pin, 1);                              // Если флаг вращения моторов включен тогда делаем импульс
+                (motor[i].dir == 1) ? motor[i].position++ : motor[i].position--; // Если вращение вправо то прибавляем
+            }
         }
     }
+
+    delayMicroseconds(1);
+
+    for (int i = 0; i < 4; i++)
+    {
+        digitalWrite(motor[i].step_pin, 0); // Отключаем импульс, делаем всегда на всех пинах без проверки включали ли его
+    }
+
+    digitalWrite(2, 0);
 }
 
-float angle_pov_sum = 0;
-// Функция обсчета телеметрии колес. перобразуем ипульсы в метры пройденного пути с учетом направления вращения
-void calculateOdom_enc()
+// Пересчет градусов в импульсы
+int32_t getPulse(float _angle)
 {
-    static unsigned long time = micros();       // Время предыдущего расчета
-    unsigned long time_now = micros();          // Время в которое делаем расчет
-    float dt = ((time_now - time) / 1000000.0); // Интервал расчета переводим сразу в секунды
-    time = time_now;
-    //------------------------------------
-    float gradusL = odom_impuls_L * (1.8 / microStep); // На сколько градусов проехали c учетом микрошага драйвера 8
-    float gradusR = odom_impuls_R * (1.8 / microStep); // На сколько градусов проехали c учетом микрошага драйвера 8
-
-    odom_impuls_L = 0; // Обнуляем значение
-    odom_impuls_R = 0; // Обнуляем значение
-
-    float way_L = ((PI * (RADIUS / 1000.0)) / 180.0) * gradusL; // По формуле длинны дуги находим пройденный путь колесом Радиус приводим в метры так как он указан в мм
-    float way_R = ((PI * (RADIUS / 1000.0)) / 180.0) * gradusR; // По формуле длинны дуги находим пройденный путь колесом
-    float way_C = (way_L + way_R) / 2.0;                        // Путь средней точки Center
-    odom_way_L += way_L;                                        // суммируем
-    odom_way_R += way_R;                                        // суммируем
-    odom_way_C += way_C;                                        // суммируем
-
-    //printf("dt= %f odom_way_L= %f  odom_way_R= %f ", dt, odom_way_L, odom_way_R);
-    // printf("odom_way_C= %f ", odom_way_C);
-
-    //-----------------------------------
-    float angle_pov;
-    //Находим угловую скорость вращения (поворота) робота
-    if (g_radius == 0) // Если двигаемся прямо то
-    {
-        angle_pov = 0; // Угол поворота равен нулю
-    }
-    else
-    {
-        angle_pov = way_C / -g_radius; // Делим пройденный оп дуге путь на радиус движения получаем угол поворота в радианах
-        angle_pov_sum += angle_pov * 180.0 / PI;
-    }
-    //Находим угловую скорость поворота в радианах в секунду
-    g_odom_enc.vel_th = angle_pov / dt; //  Вычисляем радианы в секунду получаем угловую скорость
-    //---------------------------------------
-    // Находим линейные скорости из моего вектора скорости. Я задаю общую скорость движения (длинна вектора), ее надо разложить на проекции по осям x y. Это будут линейные скорости
-    g_odom_enc.vel_x = g_speed * cos(g_odom_enc.th); // Проекция моей скорости на ось X получаем линейную скорость по оси
-    g_odom_enc.vel_y = g_speed * sin(g_odom_enc.th); // Проекция моей скорости на ось Y получаем линейную скорость по оси
-
-    //printf("g_speed= %.2f  g_radius= %.2f angle_pov= %f  angle_pov_sum= %f vel_x= %.2f  vel_y= %.2f  vel_th= %f ", g_speed, g_radius, angle_pov, angle_pov_sum, g_odom_enc.vel_x, g_odom_enc.vel_y, g_odom_enc.vel_th);
-
-    // Находим смещение по глобальной карте по осям Х и Y c помощью матрицы вращения. Она вычисляет смешения по осям на нужный угол
-    //float delta_x = (g_odom_enc.vel_x * cos(g_odom_enc.th) - g_odom_enc.vel_y * sin(g_odom_enc.th)) * dt;
-    //float delta_y = (g_odom_enc.vel_x * sin(g_odom_enc.th) + g_odom_enc.vel_y * cos(g_odom_enc.th)) * dt;
-
-    float delta_x = (g_odom_enc.vel_x) * dt;
-    float delta_y = (g_odom_enc.vel_y) * dt;
-    float delta_th = g_odom_enc.vel_th * dt;
-
-    // Меняем координаты и угол на основе вычислений
-    g_odom_enc.x += delta_x;   //Вычисляем координаты
-    g_odom_enc.y += delta_y;   //Вычисляем координаты
-    g_odom_enc.th += delta_th; // Прибавляем к текущему углу и получаем новый угол куда смотрит наш робот
-
-    //printf("x= %.2f y= %.2f th= %.3f  time= %u \n", g_odom_enc.x, g_odom_enc.y, g_odom_enc.th, millis());
+    return iiRound(_angle / sector);
 }
 
-
-// Установка скорости моторов в зависимости от радиуса и направления
-void set_speed_master_slave(float speed_, float radius_)
+// Пересчет импульсов в градусы
+float getAngle(int32_t _pulse)
 {
-    g_radius = radius_; 
-    g_speed = speed_; 
-
-    float k2 = 0;
-    if (g_radius != 0) // Вычисляем коефициент перобразования иначе он остается равен 0
-    {
-        k2 = (DISTANCE_WHEELS / 2.0) / abs(g_radius); //Находим долю какую составляем растояние половинки между колесами тела и радиусом поворота.
-        //printf("k2= %f \n", k2);
-    }
-    float internal_speed = g_speed * (1 - k2);
-    float external_speed = g_speed * (1 + k2);
-    //printf(" internal_speed= %f  center_speed= %f external_speed= %f \n", internal_speed, g_speed, external_speed);
-
-    // Определяем направление движения
-    if (radius_ == 0) //Едем по прямой
-    {
-        setSpeed_L(g_speed);
-        setSpeed_R(g_speed);
-    }
-    if (radius_ < 0) //  едем против часовой стрелки, поворачиваем налево
-    {
-        setSpeed_L(internal_speed); //Левое едет медленней
-        setSpeed_R(external_speed); // Правое едет быстрее
-    }
-    if (radius_ > 0) // По часовой стрелке направо
-    {
-        setSpeed_L(external_speed); //Левое едет быстрее
-        setSpeed_R(internal_speed); // Правое едет медленно
-    }
+    return _pulse * sector;
 }
-// Функция отслеживает время движения. Движемся только опредленное времяи потом если нет новой команды останавливаемся
-void movementTime()
+
+// Установка мотора в нужное положение в градусах локальной системы
+void setMotorAngle(int32_t num, float _angle)
 {
-    // Отслеживания движения по времени
-    if (time_speed_flag)
+    if (_angle < 0)
+        _angle = 0;                            // Защита от отрицвтельного гардуса угла
+    digitalWrite(PIN_Motor_En, 0);             // Включаем драйвера
+    motor[num].destination = getPulse(_angle); // Получаем в какую позицию должен встать мотор наиболее близкую к требуемому градусу
+    if (motor[num].destination > 8000)
+        motor[num].destination = 8000; // Защита от отклонения больше предела
+    printf("position= %i \n", motor[num].position);
+    printf("destination= %i \n", motor[num].destination);
+    if (motor[num].position == motor[num].destination) // Если текущая позиция и так тавна цели то ничего не делаем и выходим из функции
+        return;
+    if (motor[num].position < motor[num].destination) // Если цель бпльше то вращение по часовой 1
     {
-        if (millis() - time_speed_start > time_speed) //
-        {
-            time_speed_flag = false; //Заканчиваем отслеживать
-            stopMotor();
-            time_speed_start = time_speed = 0;
-        }
+        digitalWrite(motor[num].dir_pin, 1);
+        motor[num].dir = 1;
     }
-}
-// Установка скорости движения в течении заданного времени в милисекундах с заданным радиусом
-void setSpeed_time(float speed_, float radius_, float time_)
-{
-    time_speed = time_; //Запоминаем время
-    time_speed_start = millis();
-    time_speed_flag = true;                  //Взводим флаг
-    set_speed_master_slave(speed_, radius_); // Установка скорости моторов в зависимости от радиуса, прибавляем половину от растояния между колесами так как считаем от внешнего колеса, может и не правильно
+    if (motor[num].position > motor[num].destination) // Если цель меньше то вращение против часовой 0
+    {
+        digitalWrite(motor[num].dir_pin, 0);
+        motor[num].dir = 0;
+    }
+    printf("dir_pin motor%i = %i \n", num, motor[num].dir_pin);
+    motor[num].status = 1; // Включаем сам мотор
 }
 
+// Функция устанавлявающая скорость вращения на ВСЕХ моторах, задается в оборотах за секунду rps
+void setSpeedMotor(float _speed)
+{
+    printf("setSpeedMotor= %f rps \n", _speed);
+
+    // Скорость в оборотах их умножаем на градусы и делим на градус на 1 шаг получаем нужное число полных шагов для такой скорости за секунду
+    // Умножаем на передаточное число редуктора и микрошаг
+    float step_za_sec = abs(_speed) * (360 / 1.8) * REDUKTOR * MICROSTEP;
+    printf("step_za_sec= %f \n", (float)step_za_sec);
+
+    // Микросекунды в секунде делим на число шагов которые надо успеть сделать за секунду и делим на микрошаги делим на микросекунды за 1 шаг с учетом предделителя таймера
+    timeingStep = (float)1000000 / step_za_sec; // Таймер по 1 микросекунде
+    printf("timeingStep= %i microsecond \n", timeingStep);
+}
+
+// Запуск моторов на тест
+void testMotorRun()
+{
+    digitalWrite(PIN_Motor_En, 0); // Включаем драйвера
+    motor[0].status = 1;
+    motor[1].status = 1;
+    motor[2].status = 1;
+    motor[3].status = 1;
+    Serial.println("testMotorRun...");
+}
+// Запуск моторов на тест
+void testMotorStop()
+{
+    motor[0].status = 0;
+    motor[1].status = 0;
+    motor[2].status = 0;
+    motor[3].status = 0;
+    // digitalWrite(PIN_Motor_En, 1); // Выключаем драйвера
+    Serial.println("testMotorStop...");
+}
+
+// Инициализация таймера 1. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
+void initTimer_1()
+{
+    Serial.println(String(millis()) + " initTimer_1 ...");
+    timer1 = timerBegin(1, 80, true);              // Номер таймера, делитель(прескаллер), Считать вверх, прибавлять (true)  Частота базового сигнала 80  Мега герц, значит будет 1 микросекунда
+    timerAttachInterrupt(timer1, &onTimer1, true); // Какой таймер используем, какую функцию вызываем,  тип прерывания  edge или level interrupts
+    timerAlarmWrite(timer1, timeingStep, true);    // Какой таймер, до скольки считаем , сбрасываем ли счетчик при срабатывании. Значение посчитали когда скороть вращения расчитывали
+    timerAlarmEnable(timer1);                      // Запускаем таймер
+}
+
+void IRAM_ATTR ISR34()
+{
+    motor[0].status = false;
+}
+void IRAM_ATTR ISR35()
+{
+    motor[1].status = false;
+}
+void IRAM_ATTR ISR36()
+{
+    motor[2].status = false;
+}
+void IRAM_ATTR ISR39()
+{
+    motor[3].status = false;
+}
+
+// Инициализация прерывния на концевиках
+void initInterrupt()
+{
+    Serial.println(String(millis()) + " initInterrupt ...");
+    pinMode(34, INPUT);
+    attachInterrupt(34, ISR34, FALLING);
+    pinMode(35, INPUT);
+    attachInterrupt(35, ISR35, FALLING);
+    pinMode(36, INPUT);
+    attachInterrupt(36, ISR36, FALLING);
+    pinMode(39, INPUT);
+    attachInterrupt(39, ISR39, FALLING);
+}
+
+// Отключение моторов в простое
+void disableMotor()
+{
+    if (motor[0].status == 0 && // Если все статусы выключены, значит моторы не двигаются и можно выключать
+        motor[1].status == 0 &&
+        motor[2].status == 0 &&
+        motor[3].status == 0)
+    {
+        digitalWrite(PIN_Motor_En, 1); // Выключаем драйвера
+    }
+}
+
+// Функция установки в ноль всех моторов
+void setZeroMotor()
+{
+    Serial.println(String(micros()) + " setZeroMotor ...");
+    for (int i = 0; i < 4; i++) // Сначала отводим немного на случай если уже в нуле
+    {
+        setMotorAngle(i, 15);
+    }
+    delay(500);
+    for (int i = 0; i < 4; i++)
+    {
+        motor[i].position = 100 * REDUKTOR * MICROSTEP; // Устанавливаем всем максимульную позицию 200 шагов пополам на редуктор и на микрошаг
+        setMotorAngle(i, 0);
+    }
+    delay(1500);                // Время что-бы успел доехать до концевика
+    for (int i = 0; i < 4; i++) // По итогу обнуляем позицию и назначение
+    {
+        motor[i].position = 0;    // Устанавливаем начальную позицию
+        motor[i].destination = 0; // Устанавливаем начальную позицию
+    }
+}
 
 #endif

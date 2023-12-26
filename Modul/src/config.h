@@ -1,130 +1,89 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-
 // Контакты для светодиодов:
-const int PIN_LED_GREEN = 13; //Для красного светодиода перепаял
-//Нельзя использовать нулевой пин Не работает пин. При инициализации SPI_slave функция его занимает и дает всегда половину напряжения и он не реагирует на команды.
-const int PIN_ANALIZ = 13;
-
-uint64_t time_izmerenia = 0;      // Время в которое считываем данные из датчика
-float delta_time_izmerenia = 0;   // Время между измерениями. передаем в ПИД регуляторы для расчетов
-uint64_t pred_time_izmerenia = 0; // Предыдущее время измерения.
+const int PIN_LED = 22; // Для светодиода // !!! Нельзя использовать нулевой пин Не работает пин. При инициализации SPI_slave функция его занимает и дает всегда половину напряжения и он не реагирует на команды.
 
 volatile bool flag_timer_1sec = false;
 volatile bool flag_timer_10millisec = false;
 volatile bool flag_timer_50millisec = false;
-volatile bool flag_timer_60sec = false;
-volatile int count_timer_10millisec = 0; //Счетчик для запуска обработки движения моторов в лупе по флагу
-volatile int count_timer_50millisec = 0; //Счетчик для запуска каждые 50 милисекунд
+volatile int count_timer_10millisec = 0; // Счетчик для запуска обработки движения моторов в лупе по флагу
+volatile int count_timer_50millisec = 0; // Счетчик для запуска каждые 50 милисекунд
 volatile int count_timer_1sec = 0;       // Счетчик для запуска
-volatile int count_timer_60sec = 0;      // Счетчик для запуска
-
-int flag_newData = 0;        // Флаг что ест новые данные от обмена по шине SPI
-int flag_newControlData = 0; // Флаг что есть новые данные по ручному управлению
-
-int flag_setup = 0; // Флаг что функйия setup прошла успешно
-
-
-#define MAX_RADIUS 0.5      // Максимальный радиус поворота робота
-#define FIX_SPEED 0.3  // Скорость при ручном управлении
 
 hw_timer_t *timer0 = NULL;
 hw_timer_t *timer1 = NULL;
-hw_timer_t *timer2 = NULL;
-hw_timer_t *timer3 = NULL;
 
 //*********************************************************************
-
-//Структура одометрии
-struct Struct_Odom
+// Структура по состоянию лидаров локальная
+struct lidarStruct
 {
-  float x = 0;      // Координата по Х
-  float y = 0;      // Координата по Y
-  float th = 0;     // Направление носа
-  float vel_x = 0;  // Линейная скорость движения робота по оси X
-  float vel_y = 0;  // Линейная скорость движения робота по оси Y
-  float vel_th = 0; // Угловая скорость вращения робота
-
-  Struct_Odom &operator=(const Struct_Odom &source) // Специальный оператор, как функция в структуре, позволяет копировать одинаковые структуры просто знаком равно
-  {
-    x = source.x;
-    y = source.y;
-    th = source.th;
-    vel_x = source.vel_x;
-    vel_y = source.vel_y;
-    vel_th = source.vel_th;
-    return *this;
-  }
+  uint32_t status = 0; // Статус датчика или ошибки
+  float distance = 0;  // Последнее измерение
+  float angle = 0;     // Положение при последнем измерении
 };
 
-Struct_Odom g_odom_enc; // Одометрия по энкодерам
-Struct_Odom g_odom_imu; // Одометрия по гироскопу и аксельрометру
-float g_radius = 0;     // Радиус по которому движемся
-// float g_napravl = 0;     // Направление поворота по часовой или против часовой
-float g_speed = 0; // Скорость с которой движемся
+lidarStruct lidar[4]; // Все локальные данные по дальномерам
 
-// Структура получаемых данных от Data к контроллеру Driver
-struct Struct_Data2Driver
+// Структура по состоянию лидаров которая передается на верхний уровень
+struct lidarStructSend
 {
-  uint32_t id = 0;       // Номер команды по порядку
-  uint32_t startStop;    // Стоим или двигаемся
-  float radius = 0;      // Радиус по которому нужно двигаться
-  float speed = 0;       // Скорость с которой нужно двигаться`
-  float angle_camera;    // Угол камеры для шагового мотора камеры
-  uint32_t led;          // Номер программы для светодиодов мигания
-  uint32_t servo;        // Номер программы для сервомоторов движения рук
-  int32_t posServoL;        // Позиция левого сервомотра
-  int32_t posServoR;        // ПИзиция правого сервомотра
-  int32_t timeServoL;       // Время за которое левый мотор должен прити в задаваемую позицию
-  int32_t timeServoR;       // Время за которое правый мотор должен прити в задаваемую позицию
-  uint32_t cheksum = 0;  // Контрольная сумма данных в структуре
+  uint32_t status = 0; // Статус датчика или ошибки
+  float distance = 0;  // Последнее измерение
+  float angle = 0;     // Положение при последнем измерении
 };
 
-Struct_Data2Driver Data2Driver_receive;                         // Экземпляр структуры получаемых данных
-const int size_structura_receive = sizeof(Data2Driver_receive); // Размер структуры с данными которые получаем
-
-//Структура в которой все главные переменные передаюся на высокий уровень
-struct Struct_Driver2Data
+//*********************************************************************
+struct motorStruct // Структура для локального управления и сбора данных по моторам
 {
-  uint32_t id = 0;      // id команды
-  Struct_Odom odom_enc; // Одометрия по энкодерам
-  Struct_Odom odom_imu; // Одометрия по гироскопу и аксельрометру
-  float odom_L = 0;     // Пройденный путь левым колесом
-  float odom_R = 0;     // Пройденный путь правым колесом
-  float speed_L = 0;    // Скорость левого колеса
-  float speed_R = 0;    // Скорость правого колеса
+  int32_t status = 0;          // Передаются импульсы на мотор или нет в данный момент, вращается или нет
+  int32_t position = 0;        // Текущая позиция в импульсах
+  int32_t destination = 0;     // Цель назначение в позиции в импульсах
+  int8_t dir = 0;              // Направление вращения мотора 1 - по часовой 0 - против часовой
+  int8_t dir_pin = 0;          // Пин определяющий направление вращения
+  int8_t step_pin = 0;         // Пин определяющий импульс
+  int8_t micric_pin = 0;       // Пин определяющий концевик
+  int32_t globalTransform = 0; // Угол котрый надо прибавить чтобы локальный угол превратить в глобальный
+};
+motorStruct motor[4]; // Все локальные данные по моторам
 
-  uint32_t connect_flag; // Флаг связи с пультом ручного управления
-  uint32_t startStop;    // Стоим или двигаемся
-  float radius = 0;      // Радиус по которому нужно двигаться
-  float speed = 0;       // Скорость с которой нужно двигаться
-  float angle_camera;    // Угол камеры для шагового мотора камеры
-  uint32_t led;          // Номер программы для светодиодов мигания
-  uint32_t servo;        // Номер программы для сервомоторов движения рук
-  int32_t posServoL;        // Позиция левого сервомотра
-  int32_t posServoR;        // ПИзиция правого сервомотра
+struct motorStructSend // Структура которая передается на верхний уровень
+{
+  int32_t status = 0;    // Передаются импульсы на мотор или нет в данный момент, вращается или нет
+  float position = 0;    // Текущая позиция в градусах
+  float destination = 0; // Цель назначение в позиции в градусах
+};
 
-  uint32_t status_wifi; // Статус запущен ли вайфай или выключен
+//*********************************************************************
+// Структура получаемых данных от Data к контроллеру Modul
+struct Struct_Data2Modul
+{
+  uint32_t id = 0;      // Номер команды по порядку
+  uint32_t command = 0; // Текущая команда к выполенению 0 - режим колибровки концевиков 1 - обычное управление моторами по углу
+  float angle[4];       // Углы в которые нужно повернультя в глобальной системе
 
   uint32_t cheksum = 0; // Контрольная сумма данных в структуре
 };
 
-Struct_Driver2Data Driver2Data_send;                                                                                    //Тело робота. тут все переменные его характеризующие на низком уровне
-const int size_structura_send = sizeof(Driver2Data_send);                                                               // Размер структуры с данными которые передаем
-const uint16_t max_size_stuct = (size_structura_receive < size_structura_send) ? size_structura_send : size_structura_receive; // Какая из структур больше
+Struct_Data2Modul Data2Modul_receive;                          // Экземпляр структуры получаемых данных
+const int size_structura_receive = sizeof(Data2Modul_receive); // Размер структуры с данными которые получаем
 
-//Функция возвращает контрольную сумму структуры без последних 4 байтов
-template <typename T>
-uint32_t measureCheksum(const T &structura_)
+//*********************************************************************
+// Структура в которой все главные переменные передаюся на высокий уровень от Modul к Data
+struct Struct_Modul2Data
 {
-  uint32_t ret = 0;
-  unsigned char *adr_structura = (unsigned char *)(&structura_); // Запоминаем адрес начала структуры. Используем для побайтной передачи
-  for (int i = 0; i < sizeof(structura_) - 4; i++)
-  {
-    ret += adr_structura[i]; // Побайтно складываем все байты структуры кроме последних 4 в которых переменная в которую запишем результат
-  }
-  return ret;
-}
+  uint32_t id = 0; // id команды
+
+  uint32_t pinMotorEn = 0;  // Стутус пина управления драйвером моторов, включен драйвер или нет
+  motorStructSend motor[4]; // Структура по состоянию моторов
+  lidarStructSend lidar[4]; // Структура по состоянию лидаров
+  int32_t micric[4];        // Структура по состоянию концевиков
+
+  uint32_t cheksum = 0; // Контрольная сумма данных в структуре
+};
+
+Struct_Modul2Data Modul2Data_send;                                                                                             // Тут все переменные его характеризующие на низком уровне
+const int size_structura_send = sizeof(Modul2Data_send);                                                                       // Размер структуры с данными которые передаем
+const uint16_t max_size_stuct = (size_structura_receive < size_structura_send) ? size_structura_send : size_structura_receive; // Какая из структур больше
 
 #endif

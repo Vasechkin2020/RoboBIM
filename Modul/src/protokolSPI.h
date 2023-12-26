@@ -65,7 +65,7 @@ IRAM_ATTR void rx_ok(spi_slave_transaction_t *trans) // IRAM_ATTR Добавит
 
 void initSPI_slave()
 {
-    Serial.println("Control Slave_SPI init !");
+    Serial.println("Control Slave_SPI init...");
     pinMode(PIN_NUM_MISO, OUTPUT);   // Линия на выход
     //ПО умолчанию все к минусу кроме чипселект
     pinMode(PIN_NUM_MOSI, INPUT_PULLDOWN); // Линия на вход подтянута к минусу
@@ -100,24 +100,24 @@ void spi_slave_queue_Send()
     memset(buf_slave_receive, 0, sizeof(buf_slave_receive));
     rx_start_transaction.length = SIZE_BUFF * 8 + 32;   // Колличество бит в транзакции с запасом
     rx_start_transaction.rx_buffer = buf_slave_receive; // Буфер памяти куда получим структуру
-    rx_start_transaction.tx_buffer = &Driver2Data_send;     // Ссылка на структуру которую отправляем
+    rx_start_transaction.tx_buffer = &Modul2Data_send;     // Ссылка на структуру которую отправляем
     ret = spi_slave_queue_trans(RX_HOST, &rx_start_transaction, portMAX_DELAY);
     assert(ret == ESP_OK);
 }
 
 //Обработка пришедших данных после срабатывания прерывания что обмен состоялся
-void processing_Data()
+void processingDataReceive()
 {
     ret = spi_slave_get_trans_result(RX_HOST, &rx_end_transaction, portMAX_DELAY); // Wait for received data
     assert(ret == ESP_OK);
-
+    //printf("=\n");
     if (flag_goog_data_time) // Если прерывание было вовремя, а не случайное
     {
-        Struct_Data2Driver *copy_buf_slave_receive = (Struct_Data2Driver *)buf_slave_receive; // Создаем переменную в которую пишем адрес буфера в нужном формате
-        Data2Driver_receive = *copy_buf_slave_receive;                // Копируем из этой перемнной данные в мою структуру
-        uint32_t cheksum_receive = measureCheksum(Data2Driver_receive); // Считаем контрольную сумму пришедшей структуры
+        Struct_Data2Modul *copy_buf_slave_receive = (Struct_Data2Modul *)buf_slave_receive; // Создаем переменную в которую пишем адрес буфера в нужном формате
+        Data2Modul_receive = *copy_buf_slave_receive;                // Копируем из этой перемнной данные в мою структуру
+        uint32_t cheksum_receive = measureCheksum(Data2Modul_receive); // Считаем контрольную сумму пришедшей структуры
    
-        if (cheksum_receive != Data2Driver_receive.cheksum || Data2Driver_receive.cheksum == 0)
+        if (cheksum_receive != Data2Modul_receive.cheksum || Data2Modul_receive.cheksum == 0)
         {
             obmen_bed_crc++;
         }

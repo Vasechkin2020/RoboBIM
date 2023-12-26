@@ -1,24 +1,39 @@
 #ifndef CODE_H
 #define CODE_H
 
+//************************ ОБЬЯВЛЕНИЕ ФУНКЦИЙ *******************************************
+
+void IRAM_ATTR onTimer();                               // Обработчик прерывания таймера 0 по совпадению A 	1 раз в 1 милисекунду
+void collect_Data_for_Send();                           // Собираем нужные данные и пишем в структуру на отправку
+void executeDataReceive();                              // Отработка пришедших команд. Изменение скорости, траектории и прочее
+template <typename T>
+uint32_t measureCheksum(const T &structura_);           // Функция возвращает контрольную сумму структуры без последних 4 байтов
+float tfLocalToGlobal360(float _angle, uint8_t _motor); // Функция преобразования из локальной системы координат в глобальную360
+float tfGlobal360ToLocal(float _angle, uint8_t _motor); // Функция преобразования из глобальной 360 в локальную систему моторов
+float filtr_My(float old_, float new_, float ves_new_); // Функция фильтрующая(сглаживающая) значения берет старое с меньшим весом и новое с большим
+void Led_Blink(int led_, unsigned long time_);          // Функция мигания светодиодом в основном цикле
+
+//************************ РЕАЛИЗАЦИЯ ФУНКЦИЙ *******************************************
+
+// Функция возвращает контрольную сумму структуры без последних 4 байтов
+template <typename T>
+uint32_t measureCheksum(const T &structura_)
+{
+  uint32_t ret = 0;
+  unsigned char *adr_structura = (unsigned char *)(&structura_); // Запоминаем адрес начала структуры. Используем для побайтной передачи
+  for (int i = 0; i < sizeof(structura_) - 4; i++)
+  {
+    ret += adr_structura[i]; // Побайтно складываем все байты структуры кроме последних 4 в которых переменная в которую запишем результат
+  }
+  return ret;
+}
+
 // Функция фильтрующая(сглаживающая) значения берет старое с меньшим весом и новое с большим
 float filtr_My(float old_, float new_, float ves_new_)
 {
   return (old_ * (1.0 - ves_new_)) + (new_ * ves_new_);
 }
 
-void initLed()
-{
-  pinMode(PIN_LED_GREEN, OUTPUT);
-  pinMode(PIN_ANALIZ, OUTPUT);
-
-  digitalWrite(PIN_LED_GREEN, 1);
-}
-
-void offLed()
-{
-  digitalWrite(PIN_LED_GREEN, 0);
-}
 // Функция мигания светодиодом в основном цикле
 void Led_Blink(int led_, unsigned long time_)
 {
@@ -28,33 +43,37 @@ void Led_Blink(int led_, unsigned long time_)
   {
     led_status = 1 - led_status;
     digitalWrite(led_, led_status);
-    // digitalWrite(PIN_POWER_OFF, 1); // Выключение питания
-    // delay(50);
-    // digitalWrite(PIN_POWER_OFF, 0); // Выключение питания
     led_time = millis();
   }
 }
 
 // Отработка пришедших команд. Изменение скорости, траектории и прочее
-void executeCommand()
+void executeDataReceive()
 {
-// Управление шаговыми мотрами движения
-#ifdef MOTOR
-  static int command_pred = 0;                                                             // Переменная для запоминания предыдущей команды
-  if (Data2Driver_receive.startStop == 0 && Data2Driver_receive.startStop != command_pred) // Если пришла команда 0 и предыдущая была другая
+  static int command_pred = 0; // Переменная для запоминания предыдущей команды
+  // Команда НАСТРОЙКИ
+  if (Data2Modul_receive.command == 0) // Если идет команда настройки то отключаем все и включаем печать вызова прерывания
   {
-    // Serial.println("commanda  STOP...");
-    stopMotor(); // все останавливаем
+    for (int i = 0; i < 4; i++)
+    {
+      printf("m%i= %i ", i, digitalRead(motor[i].micric_pin));
+    }
+    printf("\n");
   }
-  if (Data2Driver_receive.startStop == 1) // Если командв двигаться то задаем движение на 1 секунду
+
+  // Команда КОЛИБРОВКИ И УСТАНОВКИ В 0
+  if (Data2Modul_receive.command == 1 && Data2Modul_receive.command != command_pred) // Если пришла команда 1 Колибровки и предыдущая была другая
   {
-    printf(" Data2Driver.radius= %f ", Data2Driver_receive.radius);
-    printf(" Data2Driver.speed= %f ", Data2Driver_receive.speed);
-    setSpeed_time(Data2Driver_receive.speed, Data2Driver_receive.radius, 1000);
-    // setSpeed_time(0.2, 0.2, 1000);
+    setZeroMotor(); // Установка в ноль
   }
-  command_pred = Data2Driver_receive.startStop; // Запоминаяем команду
-#endif
+
+  // Команда УПРАВЛЕНИЯ УГЛАМИ
+  if (Data2Modul_receive.command == 2) // Если пришла команда 2 Управления
+  {
+  }
+
+  command_pred = Data2Modul_receive.command; // Запоминаяем команду
+  //     // printf(" Data2Modul.radius= %f ", Data2Modul_receive.radius);
 }
 
 // Функция исполняемая по прерыванию по таймеру 0
@@ -64,7 +83,6 @@ void IRAM_ATTR onTimer() // Обработчик прерывания тайме
   count_timer_10millisec++;
   count_timer_50millisec++;
   count_timer_1sec++;
-  count_timer_60sec++;
   // Serial.println(".");
   //  каждые 10 милисекунд
   if (count_timer_10millisec >= 10)
@@ -84,17 +102,12 @@ void IRAM_ATTR onTimer() // Обработчик прерывания тайме
     count_timer_1sec = 0;
     flag_timer_1sec = true;
   }
-  // Таймер на 1 минуту
-  if (count_timer_60sec >= 60000)
-  {
-    count_timer_60sec = 0;
-    flag_timer_60sec = true;
-  }
 }
 
 // Инициализация таймера 0. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
 void initTimer_0()
 {
+  Serial.println(String(millis()) + " initTimer_0 ...");
   timer0 = timerBegin(0, 80, true);             // Номер таймера, делитель(прескаллер), Считать вверх, прибавлять (true)  Частота базового сигнала 80  Мега герц, значит будет 1 микросекунда
   timerAttachInterrupt(timer0, &onTimer, true); // Какой таймер используем, какую функцию вызываем,  тип прерывания  edge или level interrupts
   timerAlarmWrite(timer0, 1000, true);          // Какой таймер, до скольки считаем , сбрасываем ли счетчик при срабатывании 1000 микросекунд эти 1 милисекунда
@@ -102,36 +115,54 @@ void initTimer_0()
 }
 
 // Собираем нужные данные и пишем в структуру на отправку
-void collect_Data()
+void collect_Data_for_Send()
 {
-  Driver2Data_send.id++;
-  Driver2Data_send.odom_enc = g_odom_enc;
-  Driver2Data_send.odom_imu = g_odom_imu;
-  Driver2Data_send.odom_L = odom_way_L;
-  Driver2Data_send.odom_R = odom_way_R;
-  Driver2Data_send.speed_L = speed_L_fact;
-  Driver2Data_send.speed_R = speed_R_fact;
+  Modul2Data_send.id++;
+  Modul2Data_send.pinMotorEn = digitalRead(PIN_Motor_En); // Считываем состояние пина драйверов
 
-  Driver2Data_send.cheksum = measureCheksum(Driver2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
+  for (int i = 0; i < 4; i++)
+  {
+    Modul2Data_send.motor[i].status = motor[i].status;                                            // Считываем состояние пина драйверов
+    Modul2Data_send.motor[i].position = tfLocalToGlobal360(getAngle(motor[i].position), i);       // Записываем текущую позицию преобразуя из импульсов в градусы, надо еще в глобальную систему преобразовывать
+    Modul2Data_send.motor[i].destination = tfLocalToGlobal360(getAngle(motor[i].destination), i); // Считываем цель по позиции, надо еще в глобальную систему преобразовывать
 
-  // Serial.println("");
+    Modul2Data_send.lidar[i].status = lidar[i].status;     // Считываем статаус дальномера
+    Modul2Data_send.lidar[i].distance = lidar[i].distance; // Считываем измерение растояния
+    Modul2Data_send.lidar[i].angle = lidar[i].angle;       // Считываем угол в котором произмели измерение
+
+    Modul2Data_send.micric[i] = digitalRead(motor[i].micric_pin); //
+  }
+  Modul2Data_send.cheksum = measureCheksum(Modul2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
 }
+
+// Функция преобразования из локальной системы координат в глобальную360
+float tfLocalToGlobal360(float _angle, uint8_t _motor)
+{
+  float angle = _angle + motor[_motor].globalTransform; // К локальной системе прибавляем константу как установлен мотор
+  if (angle > 360)
+  {
+    angle = angle - 360.0;
+  }
+  return angle;
+}
+
+// Функция преобразования из глобальной 360 в локальную систему моторов
+float tfGlobal360ToLocal(float _angle, uint8_t _motor)
+{
+  float angle = _angle - motor[_motor].globalTransform; // К локальной системе прибавляем константу как установлен мотор
+  if (angle < 0)
+  {
+    angle = angle + 360;
+  }
+  return angle;
+}
+
 void printBody()
 {
 
-  printf(" id= %i \n", Driver2Data_send.id);
-  // printf(" odom_L= %f \n", Driver2Data_send.odom_L);
-  // printf(" odom_R= %f \n", Driver2Data_send.odom_R);
-  // printf(" speed_L= %f \n", Driver2Data_send.speed_L);
-  // printf(" speed_R= %f \n", Driver2Data_send.speed_R);
-  // printf(" roll= %f \n", Driver2Data_send.bno055.roll);
-  // printf(" pitch= %f \n", Driver2Data_send.bno055.pitch);
-  // printf(" yaw= %f \n", Driver2Data_send.bno055.yaw);
-  // printf(" voltage= %f \n", Driver2Data_send.ina.voltage);
-  // printf(" current= %f \n", Driver2Data_send.ina.current);
-  // printf(" capacity_percent= %f \n", Driver2Data_send.ina.capacity_percent);
-  // printf(" capacity_real= %f \n", Driver2Data_send.ina.capacity_real);
-  printf(" Send cheksum= %i  \n --- \n", Driver2Data_send.cheksum);
+  printf(" id= %i \n", Modul2Data_send.id);
+  // printf(" capacity_real= %f \n", Modul2Data_send.ina.capacity_real);
+  printf(" Send cheksum= %i  \n --- \n", Modul2Data_send.cheksum);
 }
 
 #endif
