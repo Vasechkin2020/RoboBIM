@@ -3,9 +3,9 @@
 
 //************************ ОБЬЯВЛЕНИЕ ФУНКЦИЙ *******************************************
 
-void IRAM_ATTR onTimer();                               // Обработчик прерывания таймера 0 по совпадению A 	1 раз в 1 милисекунду
-void collect_Data_for_Send();                           // Собираем нужные данные и пишем в структуру на отправку
-void executeDataReceive();                              // Отработка пришедших команд. Изменение скорости, траектории и прочее
+void IRAM_ATTR onTimer();     // Обработчик прерывания таймера 0 по совпадению A 	1 раз в 1 милисекунду
+void collect_Data_for_Send(); // Собираем нужные данные и пишем в структуру на отправку
+void executeDataReceive();    // Отработка пришедших команд. Изменение скорости, траектории и прочее
 template <typename T>
 uint32_t measureCheksum(const T &structura_);           // Функция возвращает контрольную сумму структуры без последних 4 байтов
 float tfLocalToGlobal360(float _angle, uint8_t _motor); // Функция преобразования из локальной системы координат в глобальную360
@@ -50,19 +50,20 @@ void Led_Blink(int led_, unsigned long time_)
 // Отработка пришедших команд. Изменение скорости, траектории и прочее
 void executeDataReceive()
 {
+
   static int command_pred = 0; // Переменная для запоминания предыдущей команды
-  // Команда НАСТРОЙКИ
-  if (Data2Modul_receive.command == 0) // Если идет команда настройки то отключаем все и включаем печать вызова прерывания
+  // Команда 0
+  if (Data2Modul_receive.command == 0) // Если идет команда  0
   {
-    for (int i = 0; i < 4; i++)
-    {
-      printf("m%i= %i ", i, digitalRead(motor[i].micric_pin));
-    }
-    printf("\n");
+    // for (int i = 0; i < 4; i++)
+    // {
+    //   printf("m%i= %i ", i, digitalRead(motor[i].micric_pin));
+    // }
+    // printf("\n");
   }
 
   // Команда КОЛИБРОВКИ И УСТАНОВКИ В 0
-  if (Data2Modul_receive.command == 1 && Data2Modul_receive.command != command_pred) // Если пришла команда 1 Колибровки и предыдущая была другая
+  if (Data2Modul_receive.command == 1 && Data2Modul_receive.command != command_pred) // Если пришла команда 2 Колибровки и предыдущая была другая
   {
     setZeroMotor(); // Установка в ноль
   }
@@ -70,6 +71,12 @@ void executeDataReceive()
   // Команда УПРАВЛЕНИЯ УГЛАМИ
   if (Data2Modul_receive.command == 2) // Если пришла команда 2 Управления
   {
+    for (int i = 0; i < 4; i++)
+    {
+      float angle = tfGlobal360ToLocal(Data2Modul_receive.angle[i], i);
+      printf("motor= %i loc_angle= %f \n", i, angle);
+      setMotorAngle(i, angle);
+    }
   }
 
   command_pred = Data2Modul_receive.command; // Запоминаяем команду
@@ -132,6 +139,9 @@ void collect_Data_for_Send()
 
     Modul2Data_send.micric[i] = digitalRead(motor[i].micric_pin); //
   }
+  Modul2Data_send.spi.all = spi.all;
+  Modul2Data_send.spi.bed = spi.bed;
+
   Modul2Data_send.cheksum = measureCheksum(Modul2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
 }
 

@@ -162,15 +162,15 @@ float getAngle(int32_t _pulse)
 void setMotorAngle(int32_t num, float _angle)
 {
     if (_angle < 0)
-        _angle = 0;                            // Защита от отрицвтельного гардуса угла
-    digitalWrite(PIN_Motor_En, 0);             // Включаем драйвера
+        _angle = 0;                            // Защита от отрицательного градуса угла
+    if (_angle > 180)
+        _angle = 180;                          // Защита от отклонения больше предела 
     motor[num].destination = getPulse(_angle); // Получаем в какую позицию должен встать мотор наиболее близкую к требуемому градусу
-    if (motor[num].destination > 8000)
-        motor[num].destination = 8000; // Защита от отклонения больше предела
-    printf("position= %i \n", motor[num].position);
-    printf("destination= %i \n", motor[num].destination);
     if (motor[num].position == motor[num].destination) // Если текущая позиция и так тавна цели то ничего не делаем и выходим из функции
         return;
+    digitalWrite(PIN_Motor_En, 0);             // Включаем драйвера
+    printf("position= %i ", motor[num].position);
+    printf("destination= %i \n", motor[num].destination);
     if (motor[num].position < motor[num].destination) // Если цель бпльше то вращение по часовой 1
     {
         digitalWrite(motor[num].dir_pin, 1);
@@ -181,7 +181,7 @@ void setMotorAngle(int32_t num, float _angle)
         digitalWrite(motor[num].dir_pin, 0);
         motor[num].dir = 0;
     }
-    printf("dir_pin motor%i = %i \n", num, motor[num].dir_pin);
+    //printf("dir_pin motor %i = %i \n", num, motor[num].dir_pin);
     motor[num].status = 1; // Включаем сам мотор
 }
 

@@ -30,7 +30,7 @@ void setup()
     setSpeedMotor(SPEED); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
     initTimer_1();        // Запускаем после того как установили скоростьи посчитали интервал импульсов. Таймер на моторы, один на все так как управляем по положению я макисмально возможной скоростью передвижения
 
-    // setZeroMotor();       // Установка в ноль
+    setZeroMotor();       // Установка в ноль
     // digitalWrite(PIN_Motor_En, 0); // 0- Разрешена работа 1- запрещена работа драйвера
     // printf("countPulse= %i \n", countPulse);
     // int32_t aa = micros();
@@ -89,13 +89,15 @@ void loop()
     if (flag_data) // Если обменялись данными
     {
         flag_data = false;
-        printf("+\n");
+        // printf("+\n");
 
         processingDataReceive(); // Обработка пришедших данных после состоявшегося обмена  !!! Подумать почему меняю данные даже если они с ошибкой, потом по факту когда будет все работать
                                  // Data2Modul_receive.command = 0; // В ручном режиме имитирую приход нужной команды
         executeDataReceive();    // Выполнение пришедших команд
 
-        // printf(" Receive id= %i cheksum= %i All obmen= %i bed_time= %i bed_crc= %i", Data2Driver_receive.id, Data2Driver_receive.cheksum, obmen_all, obmen_bed_time, obmen_bed_crc);
+        //printf(" Receive id= %i cheksum= %i command= %i ", Data2Modul_receive.id, Data2Modul_receive.cheksum,Data2Modul_receive.command );
+        // printf(" All= %i bed= %i ", spi.all, spi.bed);
+        //printf(" angle0= %.2f angle1= %.2f angle2= %.2f angle3= %.2f", Data2Modul_receive.angle[0], Data2Modul_receive.angle[1], Data2Modul_receive.angle[2], Data2Modul_receive.angle[3] );
         // printf(" \n");
 
         collect_Data_for_Send(); // Собираем данные в структуре для отправки
@@ -114,7 +116,7 @@ void loop()
         flag_timer_1sec = false;
         disableMotor(); // Отключение моторов при простое
 
-        printf(" %f  \n", millis() / 1000.0); // Печать времени что программа не зависла, закомментировать в реальной работе
+        printf(" %.3f  \n", millis() / 1000.0); // Печать времени что программа не зависла, закомментировать в реальной работе
         for (int i = 0; i < 4; i++)
         {
             // printf(" motor %i position %i destination %i status %i \n", i, motor[i].position, motor[i].destination, motor[i].status);

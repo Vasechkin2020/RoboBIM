@@ -17,9 +17,6 @@ esp_err_t ret;
 spi_slave_transaction_t rx_start_transaction;
 spi_slave_transaction_t *rx_end_transaction;
 
-int obmen_all = 0;
-int obmen_bed_time = 0;
-int obmen_bed_crc = 0; // Подсчет успешных и нет обменов по SPI
 
 volatile bool flag_data = false;           // Флаг что данные передались
 volatile bool flag_goog_data_time = false; // Флаг что данные пришли через правильное время
@@ -39,7 +36,7 @@ IRAM_ATTR void ready_tx(spi_slave_transaction_t *trans)
 
 IRAM_ATTR void rx_ok(spi_slave_transaction_t *trans) // IRAM_ATTR Добавить так чтобы в другой памяти были функции ???
 {
-    obmen_all++;  // Считаем сколько было обменов данными
+    spi.all++;// Считаем сколько было обменов данными всего
 
     //Иногда из-за помех, звона или чего-то еще мы получаем два IRQ друг за другом. Это решается с помощью
     //смотреть на время между прерываниями и отказываться от любого прерывания слишком близко к другому.
@@ -52,9 +49,8 @@ IRAM_ATTR void rx_ok(spi_slave_transaction_t *trans) // IRAM_ATTR Добавит
 
     if (diff < 1000)//Если новое прерывание возникло рашьше чем 1000 микросекунд (1 милисекунды) 
     {
-        //printf(" diff= %i",diff);
         flag_goog_data_time = false;
-        obmen_bed_time++;
+        spi.bed++;
     }
     else
     {
@@ -119,7 +115,7 @@ void processingDataReceive()
    
         if (cheksum_receive != Data2Modul_receive.cheksum || Data2Modul_receive.cheksum == 0)
         {
-            obmen_bed_crc++;
+            spi.bed++;
         }
     }
 }
