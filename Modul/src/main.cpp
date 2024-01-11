@@ -5,6 +5,9 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+// #define MOTOR yes
+// #define BNO_def yes
+
 #include "config.h" // Основной конфигурационный файл с общими настройками
 
 // Файлы с функциями отдельных сущностей
@@ -29,6 +32,7 @@ void setup()
     initMotor();          // Начальная инициализация и настройка шаговых моторов
     setSpeedMotor(SPEED); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
     initTimer_1();        // Запускаем после того как установили скоростьи посчитали интервал импульсов. Таймер на моторы, один на все так как управляем по положению я макисмально возможной скоростью передвижения
+    //testMotorRun();
 
     setZeroMotor();       // Установка в ноль
     // digitalWrite(PIN_Motor_En, 0); // 0- Разрешена работа 1- запрещена работа драйвера
@@ -36,7 +40,6 @@ void setup()
     // int32_t aa = micros();
     // digitalWrite(PIN_Motor_En, 0); // Включаем драйвера
 
-    // testMotorRun();
     // for (int i = 0; i < 4; i++)
     // {
     //     setMotorAngle(0, 90);
@@ -44,7 +47,6 @@ void setup()
     //     setMotorAngle(2, 90);
     //     setMotorAngle(3, 90);
     // }
-    // delay(1000);
 
     // printf("motor[0].position= %i \n", motor[0].position);
 

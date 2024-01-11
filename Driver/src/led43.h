@@ -5,7 +5,7 @@
 #include <FastLED.h>
 
 #define NUM_LEDS 43 // Колличество светодиодов всего
-#define DATA_PIN 4  // Номер пина на который подключены
+#define DATA_PIN 15  // Номер пина на который подключены
 
 enum color
 {

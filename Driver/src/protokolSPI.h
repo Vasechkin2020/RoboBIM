@@ -1,6 +1,10 @@
 #ifndef PROTOCOLSPI_H
 #define PROTOCOLSPI_H
 
+//************************ ОБЬЯВЛЕНИЕ ФУНКЦИЙ *******************************************
+
+//***************************************************************************************
+
 #include <driver/spi_master.h>
 #include "driver/spi_slave.h"
 
@@ -28,7 +32,9 @@ volatile bool flag_goog_data_time = false; // Флаг что данные пр�
 // WORD_ALIGNED_ATTR unsigned char buf_slave_receive[SIZE_BUFF]; // Буфер в 1 kByte
 WORD_ALIGNED_ATTR unsigned char buf_slave_receive[SIZE_BUFF]; // Буфер в  Byte
 
-//*************************************************************************************
+//************************ ОБЬЯВЛЕНИЕ ФУНКЦИЙ *******************************************
+
+//***************************************************************************************
 
 IRAM_ATTR void ready_tx(spi_slave_transaction_t *trans)
 {
@@ -68,10 +74,14 @@ void initSPI_slave()
     Serial.println("========================= initSPI_slave =================================== ");
     pinMode(PIN_NUM_MISO, OUTPUT); // Линия на выход
     // ПО умолчанию все к минусу кроме чипселект
+
     pinMode(PIN_NUM_MOSI, INPUT_PULLDOWN); // Линия на вход подтянута к минусу
     pinMode(PIN_NUM_CLK, INPUT_PULLDOWN);  // Линия на вход подтянута к минусу
+    pinMode(PIN_NUM_CS, INPUT_PULLUP);     // Линия на вход подтянута к Плюсу
 
-    pinMode(PIN_NUM_CS, INPUT_PULLUP); // Линия на вход подтянута к Плюсу
+    // pinMode(PIN_NUM_MOSI, INPUT); // Линия на вход подтянута к минусу резистором на плате поэтому подтяжка не нужна
+    // pinMode(PIN_NUM_CLK, INPUT);  // Линия на вход подтянута к минусу резистором на плате поэтому подтяжка не нужна
+    // pinMode(PIN_NUM_CS, INPUT); // Линия на вход подтянута к Плюсу резистором на плате поэтому подтяжка не нужна
 
     // Configuration for the RX SPI bus
     spi_bus_config_t rx_bus_config = {
@@ -108,20 +118,26 @@ void spi_slave_queue_Send()
 // Обработка пришедших данных после срабатывания прерывания что обмен состоялся
 void processing_Data()
 {
+    Struct_Data2Driver Data2Driver_receive_temp;                                   // Экземпляр структуры получаемых данных временный, пока не посчитаем контроьную сумму и убедимся что данные хорошие
     ret = spi_slave_get_trans_result(RX_HOST, &rx_end_transaction, portMAX_DELAY); // Wait for received data
     assert(ret == ESP_OK);
 
     if (flag_goog_data_time) // Если прерывание было вовремя, а не случайное
     {
         Struct_Data2Driver *copy_buf_slave_receive = (Struct_Data2Driver *)buf_slave_receive; // Создаем переменную в которую пишем адрес буфера в нужном формате
-        Data2Driver_receive = *copy_buf_slave_receive;                                        // Копируем из этой перемнной данные в мою структуру
-        uint32_t cheksum_receive = measureCheksum(Data2Driver_receive);                       // Считаем контрольную сумму пришедшей структуры
+        Data2Driver_receive_temp = *copy_buf_slave_receive;                                        // Копируем из этой перемнной данные в мою структуру
+        uint32_t cheksum_receive = measureCheksum(Data2Driver_receive_temp);                       // Считаем контрольную сумму пришедшей структуры
 
-        if (cheksum_receive != Data2Driver_receive.cheksum || Data2Driver_receive.cheksum == 0)
+        if (cheksum_receive != Data2Driver_receive_temp.cheksum || Data2Driver_receive_temp.cheksum == 0)
         {
             obmen_bed_crc++;
-            printf(" Receive id= %i cheksum= %i All obmen= %i bed_time= %i bed_crc= %i", Data2Driver_receive.id, Data2Driver_receive.cheksum, obmen_all, obmen_bed_time, obmen_bed_crc);
+            // printf(" Receive id= %i cheksum= %i All obmen= %i bed_time= %i bed_crc= %i", Data2Driver_receive.id, Data2Driver_receive.cheksum, obmen_all, obmen_bed_time, obmen_bed_crc);
         }
+        else
+        {
+            Data2Driver_receive = Data2Driver_receive_temp; // Хорошие данные копируем, а если плохие то они пропадают и не заменяют предыдущие
+        }
+        
     }
     // Записываем данне для передачи наверх в Data
     status.timeStart = millis();

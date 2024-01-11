@@ -3,13 +3,11 @@
 #include <Wire.h>
 
 // #define MOTOR yes
-//  #define REMOTEXY yes
 // #define BNO_def yes
-#define SPI_protocol yes
+// #define SPI_protocol yes
 //  #define LED_def yes
-#define MOTOR_SERVO_def yes
-#define VL530L0X_def yes
-#define RCWL1601_def yes
+// #define VL530L0X_def yes
+// #define RCWL1601_def yes
 
 #include "config.h" // Основной конфигурационный файл с общими настройками
 #include "code.h"
@@ -36,9 +34,9 @@ void setup()
     Serial.println(String(millis()) + " End init I2C ...");
 
     // Поиск устройств на шине I2C
+    //   scanI2C();
+    // set_TCA9548A(0);
     // scanI2C();
-    // // set_TCA9548A(0);
-    // // scanI2C();
     // for (uint8_t i = 0; i < 8; i++)
     // {
     //     set_TCA9548A(i);
@@ -53,41 +51,12 @@ void setup()
 
 #ifdef MOTOR
     initMotor(); // Начальная инициализация и настройка шаговых моторов
-    // setSpeedRPS_L(0.5);
-    // setSpeedRPS_R(0.5);
-    // delay(3000);
-    // stopMotor();
-
-    // setSpeedRPS_L(1);
-    // setSpeedRPS_R(1);
-    // delay(50000000);
+    // testMotor(); // Функция тестирования правильности подключения моторов.
 #endif
 
 #ifdef VL530L0X_def
     Init_VL53L0X(Sensor_VL53L0X_L, 0x29, multi_line_VL53L0X_L); // Инициализация датчиков сверху
     Init_VL53L0X(Sensor_VL53L0X_R, 0x29, multi_line_VL53L0X_R); // Инициализация датчиков сверху
-#endif
-
-#ifdef REMOTEXY
-    Serial.println("init_WiFi...");
-    init_WiFi(); // Инициализация Вайфай в нужных режимах
-    Serial.println("Start Remote XY...");
-    RemoteXY_Init(); // Инициализируем библиотеку, внутри отключил создание сети и прочее не нужное в файле lib\RemoteXY\src\modules\espcore_wifi.h в 41 строке
-    //  delay(20000);
-#endif
-
-#ifdef MOTOR_SERVO_def
-    initServo(); // Начальная инициализация и настройка сервомоторов
-    // getServoId(); //
-    // changeServoId(2,1); // Смена id сервомотора
-    setStartPosition(341, 311);
-    // delay(3000);
-    //  setStartPosition(0,0); // Для начальной установки стоек чтобы не задекали ничего
-    //  delay(3000000);
-
-    // delay(999);
-    // testServo2();
-    // testServo(); // Начальная проверка сервомоторов
 #endif
 
 #ifdef LED_def
@@ -106,12 +75,14 @@ void setup()
     delay(999);
 #endif
 
-#ifdef SPI_protocol
+//#ifdef SPI_protocol
+    // Иницируем всегда, иначе ошибки на шине
     initSPI_slave(); // Инициализация SPI_slave
-    // printf("spi_slave_queue_Send \n");
-    // Тут надо подготовить структуру с 0 айди для первогораза отправки
     spi_slave_queue_Send(); // Configure receiver Первый раз закладываем данные чтобы как только мастер к нам обратиться было чем ответить
-#endif
+
+                     // printf("spi_slave_queue_Send \n");
+    // Тут надо подготовить структуру с 0 айди для первогораза отправки
+//#endif
 
     Serial.println(String(millis()) + " ++++++++++++++++++++++++++++++++++++++++ End SetUp !!! +++++++++++++++++++++++++++++++++++++++");
 }
@@ -124,10 +95,7 @@ void loop()
     // digitalWrite(PIN_ANALIZ, 1);
     blink_led();
 
-#ifdef REMOTEXY
-    RemoteXY_Handler(); // Обработчик. считывает данные и хранит во внутренних переменных.
-#endif
-
+#ifdef SPI_protocol
     //----------------------------- По факту обмена данными с верхним уровнем --------------------------------------
     if (flag_data) // Если обменялись данными
     {
@@ -145,6 +113,7 @@ void loop()
         collect_Driver2Data();  // Собираем данные в структуре для отправки
         spi_slave_queue_Send(); // Закладываем данные в буфер для передачи(обмена)
     }
+#endif
 
     //***********************************************************************
 

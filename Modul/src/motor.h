@@ -14,21 +14,21 @@
 #define PIN_M1_Step 26 //
 #define PIN_M1_Dir 27  //
 //---------------------------------------------------------------------------------------
-#define PIN_M2_Step 15 //
-#define PIN_M2_Dir 13  //
+#define PIN_M2_Step 14 //
+#define PIN_M2_Dir 12  //
 //---------------------------------------------------------------------------------------
-#define PIN_M3_Step 14 //
-#define PIN_M3_Dir 12  //
+#define PIN_M3_Step 15 //
+#define PIN_M3_Dir 13  //
 //---------------------------------------------------------------------------------------
-#define TRANSFORM_M0 225  // // Углы для трансформации локальной системы в глобальную, зависят от места установки мотора. УКАЗЫВАЮ КУДА СМОТРИТ 0 локальной системы в системе координат 360 градусов плюс по часовой
-#define TRANSFORM_M1 315  //
-#define TRANSFORM_M2 45  //
-#define TRANSFORM_M3 135  //
+// #define TRANSFORM_M0 225  // // Углы для трансформации локальной системы в глобальную, зависят от места установки мотора. УКАЗЫВАЮ КУДА СМОТРИТ 0 локальной системы в системе координат 360 градусов плюс по часовой
+// #define TRANSFORM_M1 315  //
+// #define TRANSFORM_M2 45  //
+// #define TRANSFORM_M3 135  //
 //---------------------------------------------------------------------------------------
-#define MICRIC_M0 34  //
-#define MICRIC_M1 35  //
-#define MICRIC_M2 36  //
-#define MICRIC_M3 39  //
+#define PIN_MICRIC_M0 39  //
+#define PIN_MICRIC_M1 36  //
+#define PIN_MICRIC_M2 34  //
+#define PIN_MICRIC_M3 35  //
 
 //************************ ОБЬЯВЛЕНИЕ ФУНКЦИЙ *******************************************
 void IRAM_ATTR onTimer1();
@@ -53,6 +53,8 @@ int32_t countPulse = 0; // Счетчик импульсов
 
 int microStep;   // Число микрошагов
 int timeingStep; // Число тактов для таймера через которое нужно дать новый имульс мотору
+
+int statusTestMotor = 0; // Статус теста мотора для отладки
 
 // ИИ функция округления до целого
 int iiRound(double number)
@@ -98,21 +100,40 @@ void initMotor()
     digitalWrite(PIN_M3_Dir, 0); //  Подтяжка чтобы не в воздухе сделал резистором на плате что-бы при перезагрузке не дергалось
     motor[3].dir_pin = PIN_M3_Dir;
 
-    motor[0].globalTransform = TRANSFORM_M0;
-    motor[1].globalTransform = TRANSFORM_M1;
-    motor[2].globalTransform = TRANSFORM_M2;
-    motor[3].globalTransform = TRANSFORM_M3;
+    // motor[0].globalTransform = TRANSFORM_M0;
+    // motor[1].globalTransform = TRANSFORM_M1;
+    // motor[2].globalTransform = TRANSFORM_M2;
+    // motor[3].globalTransform = TRANSFORM_M3;
 
-    motor[0].micric_pin = MICRIC_M0;
-    motor[1].micric_pin = MICRIC_M1;
-    motor[2].micric_pin = MICRIC_M2;
-    motor[3].micric_pin = MICRIC_M3;
+    motor[0].micric_pin = PIN_MICRIC_M0;
+    motor[1].micric_pin = PIN_MICRIC_M1;
+    motor[2].micric_pin = PIN_MICRIC_M2;
+    motor[3].micric_pin = PIN_MICRIC_M3;
 
     motor[0].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
     motor[1].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
     motor[2].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
     motor[3].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
 }
+// Прерывания на концевиках. ИСПРАВЛЯТЬ ВРУЧНУЮ под реальные пины на плате!!!!
+void IRAM_ATTR ISR34()
+{
+    motor[2].status = false;
+}
+void IRAM_ATTR ISR35()
+{
+    motor[3].status = false;
+}
+void IRAM_ATTR ISR36()
+{
+    motor[1].status = false;
+}
+void IRAM_ATTR ISR39()
+{
+    motor[0].status = false;
+}
+
+
 
 // Функция исполняемая по прерыванию по таймеру 1 на все МОТОРЫ
 void IRAM_ATTR onTimer1() // Обработчик прерывания таймера 0 по совпадению A
@@ -124,14 +145,14 @@ void IRAM_ATTR onTimer1() // Обработчик прерывания тайм�
     {
         if (motor[i].status)
         {
-            if (motor[i].position == motor[i].destination)
+            if (motor[i].position == motor[i].destination && statusTestMotor == false) // Статус statusTestMotor только для отладки чтобы включить моторы на постоянное вращение
             {
                 motor[i].status = 0;
             }
             else
             {
                 digitalWrite(motor[i].step_pin, 1);                              // Если флаг вращения моторов включен тогда делаем импульс
-                (motor[i].dir == 1) ? motor[i].position++ : motor[i].position--; // Если вращение вправо то прибавляем
+                (motor[i].dir == 1) ? motor[i].position++ : motor[i].position--; // Если считаем шаги
             }
         }
     }
@@ -204,11 +225,14 @@ void setSpeedMotor(float _speed)
 void testMotorRun()
 {
     digitalWrite(PIN_Motor_En, 0); // Включаем драйвера
+    statusTestMotor = 1; // Статус теста мотора Включаем что тест
+
     motor[0].status = 1;
     motor[1].status = 1;
     motor[2].status = 1;
     motor[3].status = 1;
     Serial.println("testMotorRun...");
+    while (1);
 }
 // Запуск моторов на тест
 void testMotorStop()
@@ -231,22 +255,6 @@ void initTimer_1()
     timerAlarmEnable(timer1);                      // Запускаем таймер
 }
 
-void IRAM_ATTR ISR34()
-{
-    motor[0].status = false;
-}
-void IRAM_ATTR ISR35()
-{
-    motor[1].status = false;
-}
-void IRAM_ATTR ISR36()
-{
-    motor[2].status = false;
-}
-void IRAM_ATTR ISR39()
-{
-    motor[3].status = false;
-}
 
 // Инициализация прерывния на концевиках
 void initInterrupt()

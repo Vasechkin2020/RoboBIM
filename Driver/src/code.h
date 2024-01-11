@@ -1,33 +1,62 @@
 #ifndef CODE_H
 #define CODE_H
 
+#include "VL53L0X.h" // Чужая библиотека polulu https://github.com/pololu/vl53l0x-arduino
+
+//************************ ОБЬЯВЛЕНИЕ ФУНКЦИЙ *******************************************
+
+void set_TCA9548A(uint8_t bus);                // Функция устанавляивающая нужное положение на мультиплексоре
+void initLed();                                // Настройка пинов светодиодов
+void Led_Blink(int led_, unsigned long time_); // Функция мигания светодиодом в основном цикле
+void blink_led();
+void printData2Driver_receive();                           // Печать пришедших данных
+void executeCommand();                                     // Отработка пришедших команд. Изменение скорости, траектории и прочее
+void IRAM_ATTR onTimer();                                  // Обработчик прерывания таймера 0 по совпадению A 	1 раз в 1 милисекунду // Функция исполняемая по прерыванию по таймеру 0
+void initTimer_0();                                        // Инициализация таймера 0. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
+void collect_Driver2Data();                                // Собираем нужные данные и пишем в структуру на отправку
+void printBody();                                          //
+uint32_t Read_VL53L0X(VL53L0X &sensor_, byte line_);       //
+void Init_VL53L0X(VL53L0X &sensor_, byte adr, byte line_); // Инициализация левого датчика с адресом 0x30
+void loop_VL53L0X();                                       //
+void min_1();                                              //
+void sec_1();                                              //
+void millisec_50();                                        //
+void millisec_10();                                        //
+//***************************************************************************************
+
 // Файлы с функциями отдельных сущностей
 #include "i2c_my.h"
-#include "my_wifi.h"
-#include "my_remotexy.h"
 #include "motor.h"
 #include "protokolSPI.h"
 #include "bno.h"
-#include "lx16a.h"
 
 #include "led43.h"
 led43 led2812; // Экземпляр класса
 
-#include "VL53L0X.h" // Чужая библиотека polulu https://github.com/pololu/vl53l0x-arduino
 VL53L0X Sensor_VL53L0X_L;
 VL53L0X Sensor_VL53L0X_R;
 
 float lazer_L = 0; // Данные с датчиков лазерных левого и правого
 float lazer_R = 0; // Данные с датчиков лазерных левого и правого
 
-
 #include "uzi.h"
+
+// Функция устанавляивающая нужное положение на мультиплексоре
+void set_TCA9548A(uint8_t bus)
+{
+  if (bus > 7)
+    return;
+  Wire.beginTransmission(Addr_TCA9548A); // TCA9548A адрес 0x70  or 0x77
+  Wire.write(1 << bus);                  // отправляем байт на выбранную шину
+  Wire.endTransmission();
+}
+// set_TCA9548A(num_line_); // Переключаем мультиплексор
 
 // Настройка пинов светодиодов
 void initLed()
 {
   pinMode(PIN_LED_GREEN, OUTPUT);
-  pinMode(PIN_ANALIZ, OUTPUT);
+  // pinMode(PIN_ANALIZ, OUTPUT);
 
   digitalWrite(PIN_LED_GREEN, 1);
 }
@@ -102,20 +131,6 @@ void executeCommand()
     // setSpeed_time(0.2, 0.2, 1000);
   }
   command_pred = Data2Driver_receive.control.startStop; // Запоминаем команду
-#endif
-
-// Управление сервомоторами рук
-#ifdef MOTOR_SERVO_def
-  // servo1.position = getPosServo_L(); // Считываем положение мотора
-  // servo2.position = getPosServo_R(); // Считываем положение мотора
-  // if (Data2Driver_receive.servo1.position == 0)
-  // {
-  //   runServo_0(1000); // В начальное положение
-  // }
-  // else
-  // {
-  //   runServo_1(1000); // Машем вверх и вниз
-  // }
 #endif
 
 // Управление светодиодами
@@ -218,6 +233,8 @@ void collect_Driver2Data()
 
   // Serial.println("");
 }
+
+//
 void printBody()
 {
 
@@ -235,10 +252,10 @@ void printBody()
   // printf(" capacity_real= %f \n", Driver2Data_send.ina.capacity_real);
   printf(" Send cheksum= %i  \n --- \n", Driver2Data_send.cheksum);
 }
-
+//
 uint32_t Read_VL53L0X(VL53L0X &sensor_, byte line_)
 {
-	set_TCA9548A(line_);
+  set_TCA9548A(line_);
   uint32_t rez = 0;
   // float rez = sensor.readRangeContinuousMillimeters();
   if ((sensor_.readReg(0x13) & 0x07) != 0)
@@ -317,7 +334,6 @@ void loop_VL53L0X()
 
   // Serial.printf(" lazer1.distance = %f ", lazer1.distance);
   // Serial.printf(" lazer2.distance = %f \n", lazer2.distance);
-
 }
 
 void min_1()
@@ -378,12 +394,14 @@ void millisec_50()
   {
     flag_timer_50millisec = false;
 
+#ifdef SPI_protocol
     if (flag_newData || flag_newControlData) // Выполняем если есть новые данные или по шине или вручную если не будет команд ни по шине не вручную то робот остановиться
     {
       executeCommand();        // Выполнение пришедших команд
       flag_newData = 0;        // Сброс флага
       flag_newControlData = 0; // Сброс флага
     }
+#endif
 
 #ifdef MOTOR             // Контроль отключения драйверов моторов после остановки
     calculateOdom_enc(); // Подсчет одометрии по энкодерам
@@ -419,19 +437,11 @@ void millisec_10()
     movementTime(); // Отслеживание времени движения
     delayMotor();   // Задержка отключения драйверов моторов после остановки
 #endif
-#ifdef REMOTEXY
-    if (RemoteXY.connect_flag == 1) // Если есть связь то берем данные от ручного управления и заменяем те что пришли по шине
-    {
-      changeDataFromRemoteXY(); // Заменяем данные, если мы на ручном управлении
-    }
-#endif
-    // Serial.println(String(millis()) + " flag_newData = " + flag_newData);
-    // Serial.println(String(millis()) + " flag_newControlData = "+ flag_newControlData);
 
 #ifdef BNO_def
     BNO055_readEuler();  // Опрашиваем датчик получаем углы
     BNO055_readLinear(); // Опрашиваем датчик получаем ускорения
-    calculateOdom_imu();    // Подсчет одометрии по imu
+    calculateOdom_imu(); // Подсчет одометрии по imu
 #endif
 
 #ifdef RCWL1601_def

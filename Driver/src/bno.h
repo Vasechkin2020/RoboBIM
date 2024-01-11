@@ -347,8 +347,6 @@ bool BNO055_getCalibrationStart()
 void BNO055_readEuler()
 {
 	set_TCA9548A(multi_line_BNO);
-	// PIN_A_1_HIGH
-	// long a, b, c, d;
 	uint8_t xHigh = 0, xLow = 0, yLow, yHigh, zLow, zHigh;
 
 	Wire.beginTransmission(BNO055_ADDRESS);
@@ -387,7 +385,6 @@ void BNO055_readEuler()
 		bno055.roll = BNO055_EulerAngles.x;
 		bno055.pitch = BNO055_EulerAngles.y;
 		bno055.yaw = BNO055_EulerAngles.z;
-		// PIN_A_1_LOW
 	}
 	else
 	{
@@ -423,8 +420,6 @@ void BNO055_readEuler()
 void BNO055_readLinear()
 {
 	set_TCA9548A(multi_line_BNO);
-	// PIN_A_1_HIGH
-	// long a, b, c, d;
 	uint8_t xHigh = 0, xLow = 0, yLow, yHigh, zLow, zHigh;
 
 	// Указываем начиная с какого адреса запрашиваем данные
@@ -469,7 +464,6 @@ void BNO055_readLinear()
 		bno055.vel_x = BNO055_LinAccData.x;
 		bno055.vel_y = BNO055_LinAccData.y;
 		bno055.vel_th = BNO055_LinAccData.z;
-		// PIN_A_1_LOW
 	}
 	else
 	{

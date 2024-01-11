@@ -1,11 +1,39 @@
 #ifndef MOTOR_H
 #define MOTOR_H
 
+//************************ ОБЬЯВЛЕНИЕ ФУНКЦИЙ *******************************************
+void set_odom_impuls(int8_t odom_dir_, int16_t &odom_impuls_); // Считаем одометрию Амперсанд перед переменной значит ссылка на нее
+void IRAM_ATTR onTimer1();                                     // Обработчик прерывания таймера 0 по совпадению A // Функция исполняемая по прерыванию по таймеру 1 ЛЕВЫЙ МОТОР
+void IRAM_ATTR onTimer2();                                     // Обработчик прерывания таймера 0 по совпадению A // Функция исполняемая по прерыванию по таймеру 2 ПРАВЫЙ МОТОР
+float chekRPS(float _rps);                                     // Проверка и ограничение минимальной и максимальной частоты вращения. Если меньше минимума то считаем что ноль
+void setTimeing_Step_L(float rps_);                            // Функция устанавливающая интревал импульсов для таймера на левом моторе
+void setTimeing_Step_R(float rps_);                            // Функция устанавливающая интревал импульсов для таймера на правом моторе
+void setSpeedRPS_L(float _rps);                                // Функция устанавлявающая скорость вращения в RPS на правом моторе обороты за секунду!
+void setSpeedRPS_R(float _rps);                                // Функция устанавлявающая скорость вращения в RPS на правом моторе обороты за секунду!
+void getKoefAccel();                                           // Расчет коеффициента соотношения ускорений для ускорения в повороте Пример расчета для 1,2 ускорения и скорорстей 9 и 1
+void setAcceleration_R();                                      // Функция ускорения на правом моторе. Смотрит с какими оборотами надо и какие уже установлены и прибавляет или убаваляет обороты
+void setAcceleration_L();                                      // Функция ускорения на правом моторе. Смотрит с какими оборотами надо и какие уже установлены и прибавляет или убаваляет обороты
+void setSpeedMS_L(float _speed);                               // Функция устанавлявающая скорость вращения на правом моторе
+void setSpeedMS_R(float _speed);                               // Функция устанавлявающая скорость вращения на правом моторе
+void stopMotor();                                              // Остановка моторов  и установкка времени задержки выключения драйверов
+void initTimer_1();                                            // Инициализация таймера 1. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
+void initTimer_2();                                            // Инициализация таймера 1. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
+void initMotor();                                              // Инициализация пинов моторов и установка начальных значений
+void delayMotor();                                             // Функция задержки выключения моторов после команды стоп на 1 секунду для экономии энергии и чтобы не грелись
+void calculateOdom_enc();                                      // Функция обсчета телеметрии колес. перобразуем ипульсы в метры пройденного пути с учетом направления вращения
+float checkMinRadius(float radius_);                           // Проверка радиуса на реалистичность в соответствии с реальными возможностями робота
+float checkMaxSpeedRadius(float radius_, float speed_);        // Проверка на максимальную скорость учитывая радиус который задан и максимальную скорость моторов с какой они могут вращаться. Проверка по внешнему колесу, как сомому быстрому
+void setSpeedRadius(float speed_, float radius_);              // Установка скорости моторов в зависимости от радиуса и направления
+void movementTime();                                           // Функция отслеживает время движения. Движемся только опредленное время и потом если нет новой команды останавливаемся
+void setSpeed_time(float speed_, float radius_, float time_);  // Установка скорости движения в течении заданного времени в милисекундах с заданным радиусом
+void testMotor();                                              // Функция тестирования правильности подключения моторов.
+
+//***************************************************************************************
 //---------------------------------------------------------------------------------------
-#define PIN_En 25 //
+#define PIN_En 14 //
 //---------------------------------------------------------------------------------------
 #define PIN_L_Step 26 //
-#define PIN_L_Dir 27  //
+#define PIN_L_Dir 12  //
 //---------------------------------------------------------------------------------------
 #define PIN_R_Step 32 //
 #define PIN_R_Dir 33  //
@@ -104,11 +132,10 @@ float chekRPS(float _rps)
     return _rps;
 }
 // Функция устанавливающая интревал импульсов для таймера на левом моторе
-
 void setTimeing_Step_L(float rps_)
 {
-    // Serial.print(" Trps_= ");
-    // Serial.println(rps_);
+    Serial.print(" Trps_= ");
+    Serial.println(rps_);
     rps_L_fact = rps_;       // Фиксируем фактические обороты
     motorLeft.rpsSet = rps_; // Фиксируем фактичские обороты
     // Берем обороты их умножаем на градусы и делим на градус на 1 шаг получаем нужное число полных шагов для такой скорости за секунду
@@ -128,17 +155,16 @@ void setTimeing_Step_L(float rps_)
     {
         flag_motor_L_EN = true; // Взводим флаг разрешающий делать импульсы в обработчике прерывания
     }
-    // Serial.print(" step_za_sec L = ");
-    // Serial.print(step_za_sec);
-    // Serial.print(" Timeing_Step_L = ");
-    // Serial.println(Timeing_Step_L);
-    // Serial.print(" rps_L = ");
+    Serial.print(" step_za_sec L = ");
+    Serial.print(step_za_sec);
+    Serial.print(" Timeing_Step_L = ");
+    Serial.println(Timeing_Step_L);
 }
 // Функция устанавливающая интревал импульсов для таймера на правом моторе
 void setTimeing_Step_R(float rps_)
 {
-    // Serial.print(" Timeing_Step_R rps_= ");
-    // Serial.println(rps_);
+    Serial.print(" Timeing_Step_R rps_= ");
+    Serial.println(rps_);
     rps_R_fact = rps_;        // Фиксируем фактичские обороты
     motorRight.rpsSet = rps_; // Фиксируем фактичские обороты
     // Берем обороты их умножаем на градусы и делим на градус на 1 шаг получаем нужное число полных шагов для такой скорости за секунду
@@ -158,11 +184,10 @@ void setTimeing_Step_R(float rps_)
     {
         flag_motor_R_EN = true; // Взводим флаг разрешающий делать импульсы в обработчике прерывания
     }
-    // Serial.print(" step_za_sec R = ");
-    // Serial.print(step_za_sec);
-    // Serial.print(" Timeing_Step_R = ");
-    // Serial.println(Timeing_Step_R);
-    // Serial.print(" rps_R = ");
+    Serial.print(" step_za_sec R = ");
+    Serial.print(step_za_sec);
+    Serial.print(" Timeing_Step_R = ");
+    Serial.println(Timeing_Step_R);
 }
 
 // Функция устанавлявающая скорость вращения в RPS на правом моторе обороты за секунду!
@@ -303,8 +328,8 @@ void setAcceleration_R()
         }
         setTimeing_Step_R(rps_new);
 
-        // Serial.print(" rps_new R= ");
-        // Serial.print(rps_new);
+        Serial.print(" rps_new R= ");
+        Serial.print(rps_new);
     }
 }
 
@@ -328,14 +353,14 @@ void setAcceleration_L()
             }
         }
 
-        // Serial.print(" rps_L_gived= ");
-        // Serial.print(rps_L_gived);
-        // Serial.print(" rps_L_fact= ");
-        // Serial.print(rps_L_fact);
-        // Serial.print(" accel= ");
-        // Serial.print(accel);
-        // Serial.print(" rps_new L= ");
-        // Serial.println(rps_new);
+        Serial.print(" rps_L_gived= ");
+        Serial.print(rps_L_gived);
+        Serial.print(" rps_L_fact= ");
+        Serial.print(rps_L_fact);
+        Serial.print(" accel= ");
+        Serial.print(accel);
+        Serial.print(" rps_new L= ");
+        Serial.println(rps_new);
 
         setTimeing_Step_L(rps_new);
     }
@@ -363,6 +388,7 @@ void setSpeedMS_R(float _speed)
 // Остановка моторов  и установкка времени задержки выключения драйверов
 void stopMotor()
 {
+    printf("Stop Motor. \n");
     setSpeedMS_L(0);
     setSpeedMS_R(0);
 }
@@ -384,6 +410,7 @@ void initTimer_2()
     timerAlarmEnable(timer2);                      // Запускаем таймер
 }
 
+// Инициализация пинов моторов и установка начальных значений
 void initMotor()
 {
     //**************************************************************   Мотор на колеса
@@ -524,8 +551,7 @@ void calculateOdom_enc()
     // printf("x= %.2f y= %.2f th= %.3f  time= %u \n", g_odom_enc.x, g_odom_enc.y, g_odom_enc.th, millis());
 }
 
-// Проверка радиуса на реалистичность в соответствии с реальными возможностями робота
-float checkMinRadius(float radius_)
+float checkMinRadius(float radius_) // Проверка радиуса на реалистичность в соответствии с реальными возможностями робота
 {
     // printf("checkMinRadius radius_ IN= %f", radius_);
     //  Проверка радиуса на возможность робота. Радиус не может быть меньше расстояния между колесами
@@ -615,6 +641,26 @@ void setSpeed_time(float speed_, float radius_, float time_)
     time_speed_start = millis();
     time_speed_flag = true;          // Взводим флаг
     setSpeedRadius(speed_, radius_); // Установка скорости моторов в зависимости от радиуса, прибавляем половину от растояния между колесами так как считаем от внешнего колеса, может и не правильно
+}
+
+// Функция тестирования правильности подключения моторов.
+void testMotor()
+{
+    digitalWrite(PIN_En, 0);    // Включаем драйвера
+    digitalWrite(PIN_L_Dir, 0); // Указываем направление
+    digitalWrite(PIN_R_Dir, 1);
+    setTimeing_Step_L(0.5); // Задаем напрямую скорость вращения
+    setTimeing_Step_R(0.5);
+    while (1);
+    //delay(5000);
+    digitalWrite(PIN_En, 1); // Выключаем драйвера
+    // setSpeedRPS_R(0.1);
+    // setSpeedRPS_L(0.5);
+    // stopMotor();
+    // setTimeing_Step_L(0);
+
+    // setSpeedRPS_L(1);
+    // setSpeedRPS_R(1);
 }
 
 #endif
