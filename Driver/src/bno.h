@@ -887,7 +887,6 @@ void Init_BNO055()
 	else
 	{
 		Serial.println("Failed to Connect to BNO055 !!!!!!!!!!!!!!");
-		flag_setup = 2;
 		// delay(1000000);
 	}
 }

@@ -21,9 +21,9 @@ esp_err_t ret;
 spi_slave_transaction_t rx_start_transaction;
 spi_slave_transaction_t *rx_end_transaction;
 
-uint32_t obmen_all = 0;
-uint32_t obmen_bed_time = 0;
-uint32_t obmen_bed_crc = 0; // Подсчет успешных и нет обменов по SPI
+// uint32_t obmen_all = 0;
+// uint32_t obmen_bed_time = 0;
+// uint32_t obmen_bed_crc = 0; // Подсчет успешных и нет обменов по SPI
 
 volatile bool flag_data = false;           // Флаг что данные передались
 volatile bool flag_goog_data_time = false; // Флаг что данные пришли через правильное время
@@ -45,7 +45,7 @@ IRAM_ATTR void ready_tx(spi_slave_transaction_t *trans)
 
 IRAM_ATTR void rx_ok(spi_slave_transaction_t *trans) // IRAM_ATTR Добавить так чтобы в другой памяти были функции ???
 {
-    obmen_all++; // Считаем сколько было обменов данными
+    spi.all++; // Считаем сколько было обменов данными
 
     // Иногда из-за помех, звона или чего-то еще мы получаем два IRQ друг за другом. Это решается с помощью
     // смотреть на время между прерываниями и отказываться от любого прерывания слишком близко к другому.
@@ -60,7 +60,7 @@ IRAM_ATTR void rx_ok(spi_slave_transaction_t *trans) // IRAM_ATTR Добавит
     {
         // printf(" diff= %i",diff);
         flag_goog_data_time = false;
-        obmen_bed_time++;
+        spi.bed++;
     }
     else
     {
@@ -71,7 +71,6 @@ IRAM_ATTR void rx_ok(spi_slave_transaction_t *trans) // IRAM_ATTR Добавит
 
 void initSPI_slave()
 {
-    Serial.println("========================= initSPI_slave =================================== ");
     pinMode(PIN_NUM_MISO, OUTPUT); // Линия на выход
     // ПО умолчанию все к минусу кроме чипселект
 
@@ -101,6 +100,7 @@ void initSPI_slave()
     // Initialize SPI slave interface
     ret = spi_slave_initialize(RX_HOST, &rx_bus_config, &rx_slave_config, 1);
     assert(ret == ESP_OK);
+    printf("%lu initSPI_slave \n", millis());
 }
 
 // Функция в которой чистим буфер и закладываем данные на передачу в буфер
@@ -125,24 +125,19 @@ void processing_Data()
     if (flag_goog_data_time) // Если прерывание было вовремя, а не случайное
     {
         Struct_Data2Driver *copy_buf_slave_receive = (Struct_Data2Driver *)buf_slave_receive; // Создаем переменную в которую пишем адрес буфера в нужном формате
-        Data2Driver_receive_temp = *copy_buf_slave_receive;                                        // Копируем из этой перемнной данные в мою структуру
-        uint32_t cheksum_receive = measureCheksum(Data2Driver_receive_temp);                       // Считаем контрольную сумму пришедшей структуры
+        Data2Driver_receive_temp = *copy_buf_slave_receive;                                   // Копируем из этой перемнной данные в мою структуру
+        uint32_t cheksum_receive = measureCheksum(Data2Driver_receive_temp);                  // Считаем контрольную сумму пришедшей структуры
 
         if (cheksum_receive != Data2Driver_receive_temp.cheksum || Data2Driver_receive_temp.cheksum == 0)
         {
-            obmen_bed_crc++;
+            spi.bed++;
             // printf(" Receive id= %i cheksum= %i All obmen= %i bed_time= %i bed_crc= %i", Data2Driver_receive.id, Data2Driver_receive.cheksum, obmen_all, obmen_bed_time, obmen_bed_crc);
         }
         else
         {
             Data2Driver_receive = Data2Driver_receive_temp; // Хорошие данные копируем, а если плохие то они пропадают и не заменяют предыдущие
         }
-        
     }
-    // Записываем данне для передачи наверх в Data
-    status.timeStart = millis();
-    status.countCommand = obmen_all;
-    status.countBedCommand = obmen_bed_time + obmen_bed_crc;
 }
 
 #endif

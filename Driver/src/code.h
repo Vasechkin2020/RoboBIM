@@ -8,7 +8,6 @@
 void set_TCA9548A(uint8_t bus);                // Функция устанавляивающая нужное положение на мультиплексоре
 void initLed();                                // Настройка пинов светодиодов
 void Led_Blink(int led_, unsigned long time_); // Функция мигания светодиодом в основном цикле
-void blink_led();
 void printData2Driver_receive();                           // Печать пришедших данных
 void executeCommand();                                     // Отработка пришедших команд. Изменение скорости, траектории и прочее
 void IRAM_ATTR onTimer();                                  // Обработчик прерывания таймера 0 по совпадению A 	1 раз в 1 милисекунду // Функция исполняемая по прерыванию по таймеру 0
@@ -18,10 +17,6 @@ void printBody();                                          //
 uint32_t Read_VL53L0X(VL53L0X &sensor_, byte line_);       //
 void Init_VL53L0X(VL53L0X &sensor_, byte adr, byte line_); // Инициализация левого датчика с адресом 0x30
 void loop_VL53L0X();                                       //
-void min_1();                                              //
-void sec_1();                                              //
-void millisec_50();                                        //
-void millisec_10();                                        //
 //***************************************************************************************
 
 // Файлы с функциями отдельных сущностей
@@ -77,36 +72,12 @@ void Led_Blink(int led_, unsigned long time_)
   }
 }
 
-void blink_led()
-{
-  if (flag_setup == 0)
-  {
-    Led_Blink(PIN_LED_GREEN, 500); // Мигаем светодиодом каждую 1/2 секунду, что-бы было видно что цикл не завис
-  }
-  else
-  {
-    Led_Blink(PIN_LED_GREEN, 100); // Мигаем светодиодом каждую 1/2 секунду, что-бы было видно что цикл не завис
-  }
-  if (millis() > 10000 && ff)
-  {
-    stopMotor();
-    ff = false;
-  }
-}
-
 // Печать пришедших данных
 void printData2Driver_receive()
 {
   printf(" id= %i ", Data2Driver_receive.id);
-  printf(" startStop= %i ", Data2Driver_receive.control.startStop);
-  printf(" speed= %f ", Data2Driver_receive.control.speed);
-  printf(" radius= %f ", Data2Driver_receive.control.radius);
-  printf(" command1= %i ", Data2Driver_receive.control.command1);
-  printf(" command2= %i ", Data2Driver_receive.control.command2);
-  printf(" servo1.position= %i ", Data2Driver_receive.servo1.position);
-  printf(" servo1.time= %i ", Data2Driver_receive.servo1.time);
-  printf(" servo2.position= %i ", Data2Driver_receive.servo2.position);
-  printf(" servo2.time= %i ", Data2Driver_receive.servo2.time);
+  printf(" speedL= %f ", Data2Driver_receive.control.speedL);
+  printf(" speedR= %f ", Data2Driver_receive.control.speedR);
   printf(" led.num_program= %i ", Data2Driver_receive.led.num_program);
   printf(" \n ");
 }
@@ -116,21 +87,10 @@ void executeCommand()
 {
 // Управление шаговыми мотрами движения
 #ifdef MOTOR
-  static int command_pred = 0;                                                                             // Переменная для запоминания предыдущей команды
-                                                                                                           // printf(" Data2Driver_receive.control.startStop= %i \n", Data2Driver_receive.control.startStop);
-  if (Data2Driver_receive.control.startStop == 0 && Data2Driver_receive.control.startStop != command_pred) // Если пришла команда 0 и предыдущая была другая
-  {
-    // Serial.println("commanda  STOP...");
-    stopMotor(); // все останавливаем
-  }
-  if (Data2Driver_receive.control.startStop == 1) // Если команда двигаться то задаем движение на 1 секунду
-  {
-    // printf(" Data2Driver.radius= %f ", Data2Driver_receive.radius);
-    // printf(" Data2Driver.speed= %f \n", Data2Driver_receive.speed);
-    setSpeed_time(Data2Driver_receive.control.speed, Data2Driver_receive.control.radius, 3000);
-    // setSpeed_time(0.2, 0.2, 1000);
-  }
-  command_pred = Data2Driver_receive.control.startStop; // Запоминаем команду
+  flagExecuteCommand = true;
+  timeExecuteCommand = millis();   // Запоминаем время когда дали команду моторам вращаться. Если через 1 секунду не поступит новой команды моторы остановятся сами movementTime()
+  setSpeed_L(Data2Driver_receive.control.speedL); // Задаем скорость левого колеса в метрах в секунду
+  setSpeed_R(Data2Driver_receive.control.speedR); // Задаем скорость правого колеса в метрах в секунду
 #endif
 
 // Управление светодиодами
@@ -157,7 +117,6 @@ void IRAM_ATTR onTimer() // Обработчик прерывания тайме
   count_timer_10millisec++;
   count_timer_50millisec++;
   count_timer_1sec++;
-  count_timer_60sec++;
   // Serial.println(".");
   //  каждые 10 милисекунд
   if (count_timer_10millisec >= 10)
@@ -177,12 +136,6 @@ void IRAM_ATTR onTimer() // Обработчик прерывания тайме
     count_timer_1sec = 0;
     flag_timer_1sec = true;
   }
-  // Таймер на 1 минуту
-  if (count_timer_60sec >= 60000)
-  {
-    count_timer_60sec = 0;
-    flag_timer_60sec = true;
-  }
 }
 
 // Инициализация таймера 0. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
@@ -200,34 +153,26 @@ void collect_Driver2Data()
 {
   Driver2Data_send.id++;
 
-  Driver2Data_send.status.timeStart = status.timeStart;
-  Driver2Data_send.status.countCommand = status.countCommand;
-  Driver2Data_send.status.countBedCommand = status.countBedCommand;
+  Driver2Data_send.spi.all = spi.all;
+  Driver2Data_send.spi.bed = spi.bed;
 
-  Driver2Data_send.car.radiusSet = car.radiusSet;
-  Driver2Data_send.car.radiusEncod = car.radiusEncod;
-  Driver2Data_send.car.speedSet = car.speedSet;
+  // Driver2Data_send.car.speedSet = car.speedSet;
   Driver2Data_send.car.speedEncod = car.speedEncod;
-  Driver2Data_send.car.way = car.way;
 
-  Driver2Data_send.motorLeft.way = motorLeft.way;
-  Driver2Data_send.motorLeft.rpsSet = motorLeft.rpsSet;
+  // Driver2Data_send.motorLeft.way = motorLeft.way;
+  // Driver2Data_send.motorLeft.rpsSet = motorLeft.rpsSet;
   Driver2Data_send.motorLeft.rpsEncod = motorLeft.rpsEncod;
 
-  Driver2Data_send.motorRight.way = motorRight.way;
-  Driver2Data_send.motorRight.rpsSet = motorRight.rpsSet;
+  // Driver2Data_send.motorRight.way = motorRight.way;
+  // Driver2Data_send.motorRight.rpsSet = motorRight.rpsSet;
   Driver2Data_send.motorRight.rpsEncod = motorRight.rpsEncod;
 
-  Driver2Data_send.odom_enc = odom_enc;
+  // Driver2Data_send.odom_enc = odom_enc;
   Driver2Data_send.bno055 = bno055;
-
-  Driver2Data_send.servo1.position = servo1.position;
-  Driver2Data_send.servo2.position = servo2.position;
 
   Driver2Data_send.lazer1.distance = lazer1.distance;
   Driver2Data_send.lazer2.distance = lazer2.distance;
-  Driver2Data_send.uzi1.distance = uzi1.distance;
-  Driver2Data_send.uzi2.distance = uzi2.distance;
+  Driver2Data_send.uzi1.distance = uzi.distance;
 
   Driver2Data_send.cheksum = measureCheksum(Driver2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
 
@@ -334,122 +279,6 @@ void loop_VL53L0X()
 
   // Serial.printf(" lazer1.distance = %f ", lazer1.distance);
   // Serial.printf(" lazer2.distance = %f \n", lazer2.distance);
-}
-
-void min_1()
-{
-  //----------------------------- 1 МИНУТА !!!!  --------------------------------------
-  if (flag_timer_60sec) // Вызывается каждую МИНУТУ
-  {
-    flag_timer_60sec = false;
-
-    // Печать времени что программа не зависла, закомментировать в реальной работе
-    // printf(" %f \n", millis() / 1000.0);
-  }
-  //***********************************************************************
-}
-
-void sec_1()
-{
-  //----------------------------- 1 СЕКУНДА !!!!  --------------------------------------
-  if (flag_timer_1sec) // Вызывается каждую секунду
-  {
-    flag_timer_1sec = false;
-    // setSpeed_time(0.2, 0.5, 500);
-    //  ppp += 0.1;
-    //  printf(" ppp= %f \n", ppp);
-    //  setSpeedRPS_R(ppp);
-    //  setSpeedMS_R(2);
-    // int pos = SERVO.GetPos(ID_SERVO_LP);
-    // Serial.print(" posL = ");
-    // Serial.print(pos);
-    // pos = SERVO.GetPos(ID_SERVO_LP);
-    // Serial.print(" posR = ");
-    // Serial.print(pos);
-    printf(" %f \n", millis() / 1000.0);
-
-    // Serial.print(" Data2Driver_receive.led.num_program = ");
-    // Serial.println(Data2Driver_receive.led.num_program);
-
-#ifdef RCWL1601_def
-    // Serial.print(" distance = ");
-    // Serial.print(distance_uzi);
-#endif
-
-#ifdef VL530L0X_def
-    // Serial.print(" distance lazerL= ");
-    // Serial.print(lazer_L);
-    // Serial.print(" distance lazerR= ");
-    // Serial.println(lazer_R);
-#endif
-    // printRemoteXY();
-    // printBody();
-  }
-}
-
-void millisec_50()
-{
-  //----------------------------- 50 миллисекунд --------------------------------------
-  if (flag_timer_50millisec)
-  {
-    flag_timer_50millisec = false;
-
-#ifdef SPI_protocol
-    if (flag_newData || flag_newControlData) // Выполняем если есть новые данные или по шине или вручную если не будет команд ни по шине не вручную то робот остановиться
-    {
-      executeCommand();        // Выполнение пришедших команд
-      flag_newData = 0;        // Сброс флага
-      flag_newControlData = 0; // Сброс флага
-    }
-#endif
-
-#ifdef MOTOR             // Контроль отключения драйверов моторов после остановки
-    calculateOdom_enc(); // Подсчет одометрии по энкодерам
-
-    // setSpeed_time(0.2, 0.2, 1000);
-    // Serial.println("setSpeed_time");
-#endif
-
-#ifdef RCWL1601_def
-    if (!Flag_uzi_wait) // Если прошлый сигнал обработали и не ждем данные
-    {
-      Triger_start(); // Запускаем новый цикл измерения ультразвуковым датчиком каждые 50 милисекунд
-    }
-#endif
-#ifdef VL530L0X_def
-    loop_VL53L0X(); // Измерение лазерными датчиками
-#endif
-  }
-}
-
-void millisec_10()
-{
-  //----------------------------- 10 миллисекунд --------------------------------------
-  if (flag_timer_10millisec)
-  {
-    flag_timer_10millisec = false;
-    // servoTest();
-    getKoefAccel();      // Расчет коэффициента ускорений при движении по радиусу
-    setAcceleration_L(); // Контроль за ускорением мотора
-    setAcceleration_R(); // Контроль за ускорением мотора
-
-#ifdef MOTOR        // Контроль за моторами по условиям
-    movementTime(); // Отслеживание времени движения
-    delayMotor();   // Задержка отключения драйверов моторов после остановки
-#endif
-
-#ifdef BNO_def
-    BNO055_readEuler();  // Опрашиваем датчик получаем углы
-    BNO055_readLinear(); // Опрашиваем датчик получаем ускорения
-    calculateOdom_imu(); // Подсчет одометрии по imu
-#endif
-
-#ifdef RCWL1601_def
-    loopUzi(); // Все действия по ультразвуковому датчику
-
-    // inTimerUzi(); // Проверка на случай если сигнал не вернется тогда через заданное время сбросим (было так раньше, потом перенес в основную функцию loopUzi())
-#endif
-  }
 }
 
 #endif

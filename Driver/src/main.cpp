@@ -2,9 +2,9 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-// #define MOTOR yes
+#define MOTOR yes
 // #define BNO_def yes
-// #define SPI_protocol yes
+#define SPI_protocol yes
 //  #define LED_def yes
 // #define VL530L0X_def yes
 // #define RCWL1601_def yes
@@ -24,14 +24,13 @@ void setup()
     // Настройка скорости порта UART1
     Serial.begin(115200);
     Serial.println(" ");
-    Serial.println(String(micros()) + " Start program ESP32_Driver RoboBIM ...");
+    Serial.println(String(millis()) + "Start ESP32_Driver printBIM(c) 2024 printBIM.com");
     // Начальная инициализация и настройка светодиодов
     initLed();
 
-    Serial.println(String(millis()) + " Start init I2C ...");
     Wire.begin(); // Старт шины I2C
     Wire.setClock(400000);
-    Serial.println(String(millis()) + " End init I2C ...");
+    Serial.println(String(millis()) + " Start init I2C 400000 ...");
 
     // Поиск устройств на шине I2C
     //   scanI2C();
@@ -75,16 +74,16 @@ void setup()
     delay(999);
 #endif
 
-//#ifdef SPI_protocol
-    // Иницируем всегда, иначе ошибки на шине
-    initSPI_slave(); // Инициализация SPI_slave
+    // #ifdef SPI_protocol
+    //  Иницируем всегда, иначе ошибки на шине
+    initSPI_slave();        // Инициализация SPI_slave
     spi_slave_queue_Send(); // Configure receiver Первый раз закладываем данные чтобы как только мастер к нам обратиться было чем ответить
 
-                     // printf("spi_slave_queue_Send \n");
+    // printf("spi_slave_queue_Send \n");
     // Тут надо подготовить структуру с 0 айди для первогораза отправки
-//#endif
+    // #endif
 
-    Serial.println(String(millis()) + " ++++++++++++++++++++++++++++++++++++++++ End SetUp !!! +++++++++++++++++++++++++++++++++++++++");
+    printf("%lu End SetUp \n", millis());
 }
 
 int a, b;
@@ -93,34 +92,83 @@ float ppp = 0;
 void loop()
 {
     // digitalWrite(PIN_ANALIZ, 1);
-    blink_led();
+    Led_Blink(PIN_LED_GREEN, 500); // Мигаем светодиодом каждую 1/2 секунду, что-бы было видно что цикл не завис
 
 #ifdef SPI_protocol
     //----------------------------- По факту обмена данными с верхним уровнем --------------------------------------
     if (flag_data) // Если обменялись данными
     {
-        flag_newData = 1; // Есть новые данные по шине
         flag_data = false;
         // printf("+\n");
         processing_Data(); // Обработка пришедших данных после состоявшегося обмена
-
-        // printf(" Receive id= %i cheksum= %i All obmen= %i bed_time= %i bed_crc= %i", Data2Driver_receive.id, Data2Driver_receive.cheksum, obmen_all, obmen_bed_time, obmen_bed_crc);
-        //  printf(" command= %i radius= %f speed= %f motor_video_angle= %f \n", Data2Driver_receive.command_body, Data2Driver_receive.radius, Data2Driver_receive.speed, Data2Driver_receive.motor_video_angle);
-        //  printf(" \n");
-
         // printData2Driver_receive();
-
+        calculateOdom_enc();    // Подсчет одометрии по энкодерам снимаем показания
         collect_Driver2Data();  // Собираем данные в структуре для отправки
         spi_slave_queue_Send(); // Закладываем данные в буфер для передачи(обмена)
+        executeCommand();       // Выполнение пришедших команд
+        // Сделать остановку моторов по датчикм растояния. чтобы не врезаться и не падать в пропасть
     }
 #endif
+    //----------------------------- 10 миллисекунд --------------------------------------
+    if (flag_timer_10millisec)
+    {
+        flag_timer_10millisec = false;
+#ifdef MOTOR // Контроль за моторами по условиям
+             // getKoefAccel();      // Расчет коэффициента ускорений при движении по радиусу
+             // setAcceleration_L(); // Контроль за ускорением мотора
+             // setAcceleration_R(); // Контроль за ускорением мотора
+#endif
 
-    //***********************************************************************
+#ifdef BNO_def
+        BNO055_readEuler();  // Опрашиваем датчик получаем углы
+        BNO055_readLinear(); // Опрашиваем датчик получаем ускорения
+        calculateOdom_imu(); // Подсчет одометрии по imu
+#endif
 
-    millisec_10();
-    millisec_50();
-    sec_1();
-    min_1();
+#ifdef RCWL1601_def
+        loopUzi(); // Все действия по ультразвуковому датчику
+
+        // inTimerUzi(); // Проверка на случай если сигнал не вернется тогда через заданное время сбросим (было так раньше, потом перенес в основную функцию loopUzi())
+#endif
+    }
+    //----------------------------- 50 миллисекунд --------------------------------------
+    if (flag_timer_50millisec)
+    {
+        flag_timer_50millisec = false;
+
+#ifdef MOTOR
+        movementTime(); // Отслеживание времени движения
+        delayMotor();   // Задержка отключения драйверов моторов после остановки
+#endif
+
+#ifdef RCWL1601_def
+        if (!Flag_uzi_wait) // Если прошлый сигнал обработали и не ждем данные
+        {
+            Triger_start(); // Запускаем новый цикл измерения ультразвуковым датчиком каждые 50 милисекунд
+        }
+#endif
+#ifdef VL530L0X_def
+        loop_VL53L0X(); // Измерение лазерными датчиками
+#endif
+    }
+    //----------------------------- 1 СЕКУНДА !!!!  --------------------------------------
+    if (flag_timer_1sec) // Вызывается каждую секунду
+    {
+        flag_timer_1sec = false;
+        printf("%li spi: all %i bed %i \n", millis(), spi.all, spi.bed);
+
+#ifdef RCWL1601_def
+        // Serial.print(" distance = ");
+        // Serial.print(distance_uzi);
+#endif
+
+#ifdef VL530L0X_def
+        // Serial.print(" distance lazerL= ");
+        // Serial.print(lazer_L);
+        // Serial.print(" distance lazerR= ");
+        // Serial.println(lazer_R);
+#endif
+    }
 
     // digitalWrite(PIN_ANALIZ, 0);
 }

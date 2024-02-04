@@ -23,7 +23,7 @@ void setup()
 
     Serial.begin(115200);
     delay(500);
-    Serial.println(String(millis()) + " Start program ESP32_Body ...");
+    Serial.println(String(millis()) + "Start ESP32_Modul printBIM(c) 2024 printBIM.com");
 
     initInterrupt(); // Инициализация прерывания на концевиках
     initTimer_0();   // Запуск таймера 0
