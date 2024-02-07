@@ -153,26 +153,23 @@ void collect_Driver2Data()
 {
   Driver2Data_send.id++;
 
-  Driver2Data_send.spi.all = spi.all;
-  Driver2Data_send.spi.bed = spi.bed;
 
-  // Driver2Data_send.car.speedSet = car.speedSet;
   Driver2Data_send.car.speedEncod = car.speedEncod;
 
-  // Driver2Data_send.motorLeft.way = motorLeft.way;
-  // Driver2Data_send.motorLeft.rpsSet = motorLeft.rpsSet;
+  Driver2Data_send.motorLeft.rpsSet = motorLeft.rpsSet;
   Driver2Data_send.motorLeft.rpsEncod = motorLeft.rpsEncod;
 
-  // Driver2Data_send.motorRight.way = motorRight.way;
-  // Driver2Data_send.motorRight.rpsSet = motorRight.rpsSet;
+  Driver2Data_send.motorRight.rpsSet = motorRight.rpsSet;
   Driver2Data_send.motorRight.rpsEncod = motorRight.rpsEncod;
 
-  // Driver2Data_send.odom_enc = odom_enc;
   Driver2Data_send.bno055 = bno055;
 
   Driver2Data_send.lazer1.distance = lazer1.distance;
   Driver2Data_send.lazer2.distance = lazer2.distance;
   Driver2Data_send.uzi1.distance = uzi.distance;
+  
+  Driver2Data_send.spi.all = spi.all;
+  Driver2Data_send.spi.bed = spi.bed;
 
   Driver2Data_send.cheksum = measureCheksum(Driver2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
 

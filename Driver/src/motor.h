@@ -140,7 +140,7 @@ void setSpeed_L(float _speed)
         flag_motor_L_EN = false; // Флаг ставим что мотор не работает это чтобы импульс не подавался
     }
     //printf("%lu setSpeed_L= %f -> rpsL=  %.3f -> step_za_sec L = %.3f  -> Timeing_Step_L = %i \n", millis(), _speed, rps, step_za_sec, Timeing_Step_L);
-    printf("%lu speedL %f rps %.3f stepSec %.3f TStep %i \n", millis(), _speed, rps, step_za_sec, Timeing_Step_L);
+    //printf("%lu speedL %f rps %.3f stepSec %.3f TStep %i \n", millis(), _speed, rps, step_za_sec, Timeing_Step_L);
 }
 // Функция устанавлявающая скорость вращения на правом моторе
 void setSpeed_R(float _speed)
@@ -173,7 +173,7 @@ void setSpeed_R(float _speed)
         flag_motor_R_EN = false; // Флаг ставим что мотор не работает это чтобы импульс не подавался
     }
     //printf("%lu setSpeed_R= %f -> rpsR=  %.3f -> step_za_sec R = %.3f  -> Timeing_Step_R = %i \n", millis(), _speed, rps, step_za_sec, Timeing_Step_R);
-    printf("%lu speedR %f rps %.3f stepSec %.3f TStep %i \n", millis(), _speed, rps, step_za_sec, Timeing_Step_R);
+    //printf("%lu speedR %f rps %.3f stepSec %.3f TStep %i \n", millis(), _speed, rps, step_za_sec, Timeing_Step_R);
 }
 
 // Инициализация таймера 1. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/

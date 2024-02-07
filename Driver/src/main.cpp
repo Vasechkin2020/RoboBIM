@@ -3,7 +3,7 @@
 #include <Wire.h>
 
 #define MOTOR yes
-// #define BNO_def yes
+#define BNO_def yes
 #define SPI_protocol yes
 //  #define LED_def yes
 // #define VL530L0X_def yes
@@ -24,7 +24,7 @@ void setup()
     // Настройка скорости порта UART1
     Serial.begin(115200);
     Serial.println(" ");
-    Serial.println(String(millis()) + "Start ESP32_Driver printBIM(c) 2024 printBIM.com");
+    Serial.println(String(millis()) + " Start ESP32_Driver printBIM(c) 2024 printBIM.com");
     // Начальная инициализация и настройка светодиодов
     initLed();
 
@@ -101,11 +101,11 @@ void loop()
         flag_data = false;
         // printf("+\n");
         processing_Data(); // Обработка пришедших данных после состоявшегося обмена
+        executeCommand();  // Выполнение пришедших команд
         // printData2Driver_receive();
-        calculateOdom_enc();    // Подсчет одометрии по энкодерам снимаем показания
+        BNO055_readEuler(); // Опрашиваем датчик получаем углы
         collect_Driver2Data();  // Собираем данные в структуре для отправки
         spi_slave_queue_Send(); // Закладываем данные в буфер для передачи(обмена)
-        executeCommand();       // Выполнение пришедших команд
         // Сделать остановку моторов по датчикм растояния. чтобы не врезаться и не падать в пропасть
     }
 #endif
@@ -120,9 +120,7 @@ void loop()
 #endif
 
 #ifdef BNO_def
-        BNO055_readEuler();  // Опрашиваем датчик получаем углы
-        BNO055_readLinear(); // Опрашиваем датчик получаем ускорения
-        calculateOdom_imu(); // Подсчет одометрии по imu
+
 #endif
 
 #ifdef RCWL1601_def
@@ -135,10 +133,15 @@ void loop()
     if (flag_timer_50millisec)
     {
         flag_timer_50millisec = false;
+        // Время исполнения всех вычислений по датчику 5 милисекунд
+        // BNO055_readLinear(); // Опрашиваем датчик получаем ускорения
+        //  calculateOdom_imu(); // Подсчет одометрии по imu
+
 
 #ifdef MOTOR
-        movementTime(); // Отслеживание времени движения
-        delayMotor();   // Задержка отключения драйверов моторов после остановки
+        calculateOdom_enc(); // Подсчет одометрии по энкодерам снимаем показания
+        movementTime();      // Отслеживание времени движения
+        delayMotor();        // Задержка отключения драйверов моторов после остановки
 #endif
 
 #ifdef RCWL1601_def
@@ -155,7 +158,7 @@ void loop()
     if (flag_timer_1sec) // Вызывается каждую секунду
     {
         flag_timer_1sec = false;
-        printf("%li spi: all %i bed %i \n", millis(), spi.all, spi.bed);
+        // printf("%li spi: all %i bed %i \n", millis(), spi.all, spi.bed);
 
 #ifdef RCWL1601_def
         // Serial.print(" distance = ");

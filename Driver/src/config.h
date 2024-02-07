@@ -9,9 +9,6 @@
 // Нельзя использовать нулевой пин Не работает пин. При инициализации SPI_slave функция его занимает и дает всегда половину напряжения и он не реагирует на команды.
 // #define PIN_ANALIZ 27 //Совпадает с драйвером под платформу, закоментить изменить после отладки
 
-uint64_t time_izmerenia = 0;      // Время в которое считываем данные из датчика
-float delta_time_izmerenia = 0;   // Время между измерениями. передаем в ПИД регуляторы для расчетов
-uint64_t pred_time_izmerenia = 0; // Предыдущее время измерения.
 
 volatile bool flag_timer_1sec = false;
 volatile bool flag_timer_10millisec = false;
@@ -75,25 +72,50 @@ struct SCar
   float speedEncod = 0;  // Текущая скорость движения (метры в секунду)
   float way = 0; // Пройденный путь в метрах
 };
-// Структура для углов наклонов
-struct Struct_IMU
+struct SPose
+{
+  float x = 0;      // Координата по Х
+  float y = 0;      // Координата по Y
+  float th = 0;     // Направление носа
+};
+struct SEller
 {
   float roll = 0;   // Крен в право  влево
   float pitch = 0;  // Тангаж вверх или вних
   float yaw = 0;    // Поворот по часовой мом против часовой
-  float x = 0;      // Координата по Х
-  float y = 0;      // Координата по Y
-  float th = 0;     // Направление носа
-  float vel_x = 0;  // Линейная скорость движения робота по оси X
-  float vel_y = 0;  // Линейная скорость движения робота по оси Y
-  float vel_th = 0; // Угловая скорость вращения робота
 };
+
+// Структура для углов наклонов
+struct SVel
+{
+  float vx = 0;  // Линейная скорость движения робота по оси X
+  float vy = 0;  // Линейная скорость движения робота по оси Y
+  float vth = 0; // Угловая скорость вращения робота
+};
+
+struct SImu // Структура с данными со всех датчиков, отправляем наверх
+{
+  SPose pose;
+  SVel vel;
+  SEller angleEller;
+};
+
 
 // Структура состояния датчика расстония
 struct SSensor
 {
   float distance; // расстояние до препятствия
 };
+//Отдельные структуры для каждой сущности
+SCar car; // Данные в целом по машинке
+SEncoder motorLeft;
+SEncoder motorRight;
+SImu bno055;    // Данные с датчика BNO055
+SSensor lazer1;
+SSensor lazer2;
+SSensor uzi;
+SSpi spi;            // Структура по состоянию обмена по шине SPI
+
 // Структура в которой все главные переменные передаюся на высокий уровень
 struct Struct_Driver2Data
 {
@@ -101,23 +123,13 @@ struct Struct_Driver2Data
   SCar car;
   SEncoder motorLeft;
   SEncoder motorRight;
-  Struct_IMU bno055;    // Данные с датчика BNO055
+  SImu bno055;    // Данные с датчика BNO055
   SSensor lazer1;
   SSensor lazer2;
   SSensor uzi1;
   SSpi spi;            // Структура по состоянию обмена по шине SPI
   uint32_t cheksum = 0; // Контрольная сумма данных в структуре
 };
-
-//Отдельные структуры для каждой сущности
-SCar car; // Данные в целом по машинке
-SEncoder motorLeft;
-SEncoder motorRight;
-Struct_IMU bno055;    // Данные с датчика BNO055
-SSensor lazer1;
-SSensor lazer2;
-SSensor uzi;
-SSpi spi;            // Структура по состоянию обмена по шине SPI
 
 Struct_Driver2Data Driver2Data_send;                                                                                           // Тело робота. тут все переменные его характеризующие на низком уровне
 const int size_structura_send = sizeof(Driver2Data_send);                                                                      // Размер структуры с данными которые передаем
