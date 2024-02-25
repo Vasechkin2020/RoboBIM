@@ -12,6 +12,8 @@
 #include "config.h" // Основной конфигурационный файл с общими настройками
 #include "code.h"
 
+int dd = 0;
+
 void setup()
 {
     // initialize EEPROM with predefined size
@@ -32,19 +34,21 @@ void setup()
     Wire.setClock(400000);
     Serial.println(String(millis()) + " Start init I2C 400000 ...");
 
-    // Поиск устройств на шине I2C
-    //   scanI2C();
+    
+    //scanI2C();//Поиск устройств на шине I2C
     // set_TCA9548A(0);
+    // Serial.print(" All = ");
     // scanI2C();
-    // for (uint8_t i = 0; i < 8; i++)
-    // {
-    //     set_TCA9548A(i);
-    //     Serial.print(" Slot = ");
-    //     Serial.println(i);
-    //     delay(1000);
-    //     scanI2C();
-    //     delay(1000);
-    // }
+    // Serial.println(" === ");
+    //  for (uint8_t i = 0; i < 8; i++)
+    //  {
+    //      set_TCA9548A(i);
+    //      Serial.print(" Slot = ");
+    //      Serial.println(i);
+    //      delay(100);
+    //      scanI2C();
+    //      delay(100);
+    //  }
 
     // delay(1000000);
 
@@ -99,14 +103,13 @@ void loop()
     if (flag_data) // Если обменялись данными
     {
         flag_data = false;
-        // printf("+\n");
-        processing_Data(); // Обработка пришедших данных после состоявшегося обмена
-        executeCommand();  // Выполнение пришедших команд
-        // printData2Driver_receive();
-        BNO055_readEuler(); // Опрашиваем датчик получаем углы
+        // !!! Сделать постоянную калибровку гироскопа если стоим на месте. скоростьравна нулю и считаем какое-то время. если вдруг поехали то ничего не меняем, а если успели откалиброваться то меняем офсеты.
+        processing_Data();      // Обработка пришедших данных после состоявшегося обмена
+        executeCommand();       // Выполнение пришедших команд
+        BNO055_readData();     // Опрашиваем датчик получаем углы
+        calcEncod();            // По энкодерам снимаем показания
         collect_Driver2Data();  // Собираем данные в структуре для отправки
         spi_slave_queue_Send(); // Закладываем данные в буфер для передачи(обмена)
-        // Сделать остановку моторов по датчикм растояния. чтобы не врезаться и не падать в пропасть
     }
 #endif
     //----------------------------- 10 миллисекунд --------------------------------------
@@ -134,14 +137,12 @@ void loop()
     {
         flag_timer_50millisec = false;
         // Время исполнения всех вычислений по датчику 5 милисекунд
-        // BNO055_readLinear(); // Опрашиваем датчик получаем ускорения
-        //  calculateOdom_imu(); // Подсчет одометрии по imu
-
+         //calculateOdom_imu(); // Подсчет одометрии по imu
 
 #ifdef MOTOR
-        calculateOdom_enc(); // Подсчет одометрии по энкодерам снимаем показания
-        movementTime();      // Отслеживание времени движения
-        delayMotor();        // Задержка отключения драйверов моторов после остановки
+        movementTime(); // Отслеживание времени движения
+        delayMotor();   // Задержка отключения драйверов моторов после остановки
+
 #endif
 
 #ifdef RCWL1601_def
@@ -158,7 +159,20 @@ void loop()
     if (flag_timer_1sec) // Вызывается каждую секунду
     {
         flag_timer_1sec = false;
+        // BNO055_getCalibration();
+        // dd++;
+        // if (dd > 10)
+        // {
+        //     // Тест как будто мы уточняем координаты и скорости. То что СУММИРУЕТ ТО НУЖНО УТОЧНЯТЬ НЕ МЕНЕЕ 1 раза за секунду
+        //     bno055.pose.x = 0; // Вычисляем координаты
+        //     bno055.pose.y = 0; // Вычисляем координаты
+        //     bno055.vel.vx = 0;
+        //     bno055.vel.vy = 0;
+        //     dd = 0;
+        // }
+
         // printf("%li spi: all %i bed %i \n", millis(), spi.all, spi.bed);
+        // printf("\n");
 
 #ifdef RCWL1601_def
         // Serial.print(" distance = ");
@@ -166,10 +180,10 @@ void loop()
 #endif
 
 #ifdef VL530L0X_def
-        // Serial.print(" distance lazerL= ");
-        // Serial.print(lazer_L);
-        // Serial.print(" distance lazerR= ");
-        // Serial.println(lazer_R);
+        // Serial.print(" distance laserL= ");
+        // Serial.print(laser_L);
+        // Serial.print(" distance laserR= ");
+        // Serial.println(laser_R);
 #endif
     }
 

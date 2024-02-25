@@ -4,7 +4,14 @@
 #define BNO055_ID (0b10100000) /* pg58                             */
 
 byte BNO055_Offset_Array[22];																										// Массив для хранения офсетов
-byte BNO055_Offset_Array_dafault[22]{234, 255, 18, 0, 228, 255, 248, 255, 40, 254, 248, 255, 253, 255, 1, 0, 1, 0, 232, 3, 176, 4}; // Массив для хранения офсетов по умолчанию
+byte BNO055_Offset_Array_dafault[22]{    234,  255,  18,   0,  228, 255, 248, 255, 40, 254, 248, 255, 253, 255, 1, 0, 1, 0, 232, 3, 176, 4}; // Массив для хранения офсетов по умолчанию
+byte BNO055_Offset_Array_dafault2[22]{   240,  255,  7,    0,   249,   255, 0,  0,  0,  0,  0,  0,  255,  255,  255,  255,  255,  255,  232,  3,  224,  1}; // Красный датчик
+									// = 2   = 0   = 212 = 255 = 15   = 0  = 0 = 0 = 0 = 0 = 0 = 0 = 0   = 0   = 255 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
+									// = 37  = 0   = 198 = 255 = 61   = 0  = 0 = 0 = 0 = 0 = 0 = 0 = 252 = 255 = 0   = 0   = 0   = 0   = 232 = 3 = 224 = 1---
+									// = 7   = 0   = 191 = 255 = 241 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 254 = 255 = 254 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
+									// = 243 = 255 = 234 = 255 = 248 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 251 = 255 = 3   = 0   = 255 = 255 = 232 = 3 = 224 = 1---
+									// = 240 = 255 = 7   = 0   = 249 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 255 = 255 = 255 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
+									// = 226 = 255 = 235 = 255 = 248 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 255 = 255 = 255 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
 
 struct BNO055_Info_s
 {
@@ -63,13 +70,6 @@ enum eBNO055PowerModes_t
 	eSUSPEND_POWER_MODE = 0b00000010,
 };
 
-enum eBNO055DataRateMode_t
-{
-	eFASTEST_MODE = 0b00100000,
-	eGAME_MODE = 0b01000000,
-	eUI_MODE = 0b01100000,
-	eNORMAL_MODE = 0b10000000,
-};
 enum eBNO055Registers_t
 { /* DEFAULT    TYPE                  */
   /*page0*/
@@ -191,93 +191,25 @@ enum eBNO055Registers_t
   eBNO055_REGISTER_GYR_AM_SET = 0x1F,		/* 00001010   rw pg98               */
 };
 
-enum eBNO055AxisRemap_config_t
-{
-	eREMAP_CONFIG_P0 = 0x21,
-	eREMAP_CONFIG_P1 = 0x24, // default
-	eREMAP_CONFIG_P2 = 0x24,
-	eREMAP_CONFIG_P3 = 0x21,
-	eREMAP_CONFIG_P4 = 0x24,
-	eREMAP_CONFIG_P5 = 0x21,
-	eREMAP_CONFIG_P6 = 0x21,
-	eREMAP_CONFIG_P7 = 0x24
-};
-enum eBNO055AxisRemap_sign_t
-{
-	eREMAP_SIGN_P0 = 0x04,
-	eREMAP_SIGN_P1 = 0x00, // default
-	eREMAP_SIGN_P2 = 0x06,
-	eREMAP_SIGN_P3 = 0x02,
-	eREMAP_SIGN_P4 = 0x03,
-	eREMAP_SIGN_P5 = 0x01,
-	eREMAP_SIGN_P6 = 0x07,
-	eREMAP_SIGN_P7 = 0x05
-};
+SXyz BNO055_EulerAngles;
+SXyz BNO055_LinAccData;
+SXyz BNO055_offsetLinAcc; // Офсет для гироскопа
 
-struct BNO055EulerData_s
-{
-	float x;
-	float y;
-	float z;
-	float z_pred;  // Предыдущее занчение
-	float delta_z; //  //Разница в значениях
-	float my_z;	   // Моя версия оси Z
-};
-
-// typedef struct BNO055GyrData_s
-// {
-// 	float x;
-// 	float y;
-// 	float z;
-// } ;
-
-struct BNO055LinAccData_s
-{
-	float x;
-	float y;
-	float z;
-	// float delta_time; // Время между измерениями
-};
-
-// typedef struct BNO055QuaData_s
-// {
-// 	float w;
-// 	float x;
-// 	float y;
-// 	float z;
-// } ;
-
-// typedef struct BNO055AbsLinAccData_s
-// {
-// 	float x;
-// 	float y;
-// 	float z;
-// } ;
-
-// typedef struct BNO055AccData_s
-// {
-// 	float x;
-// 	float y;
-// 	float z;
-// } ;
-
-BNO055EulerData_s BNO055_EulerAngles;
-BNO055LinAccData_s BNO055_LinAccData;
-// BNO055QuaData_s BNO055_QuaData;
-// BNO055AccData_s BNO055_AccData;
-// BNO055GyrData_s BNO055_GyrData;
-// BNO055AbsLinAccData_s BNO055_AbsLinAccData;
+void BNO055_SetMode(byte mode_); // Установка нужного режима работы
+bool BNO055_getCalibration();	 // Чтение калибровочных регистров
+void BNO055_readData();			 // Считыванеи данных из датчика
+void BNO055_getStatusInfo();	 // Считывание статуса из регистров
 
 void BNO055_SetMode(byte mode_)
 {
-	set_TCA9548A(multi_line_BNO);
 	WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_OPR_MODE, mode_); // | eFASTEST_MODE);  /* Go to config mode if not there */
 	printf("%lu BNO055_SetMode => %i \n", millis(), mode_);
 	delay(25);
 }
+
 bool BNO055_getCalibration()
 {
-	set_TCA9548A(multi_line_BNO);
+	//set_TCA9548A(multi_line_BNO);
 	uint8_t calData = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_CALIB_STAT);
 	BNO055.Calibr_sys = (calData >> 6) & 0x03;
 	Serial.print(" Calibr_sys  : ");
@@ -295,7 +227,8 @@ bool BNO055_getCalibration()
 	Serial.print(" Calibr_mag  : ");
 	Serial.print(BNO055.Calibr_mag);
 
-	if (BNO055.Calibr_sys < 3 || BNO055.Calibr_gyro < 3 || BNO055.Calibr_accel < 3 || BNO055.Calibr_mag < 3)
+	//if (BNO055.Calibr_sys < 3 || BNO055.Calibr_gyro < 3 || BNO055.Calibr_accel < 3 || BNO055.Calibr_mag < 3)
+	if (BNO055.Calibr_gyro < 3 || BNO055.Calibr_accel < 3)
 	{
 		Serial.println(" Calibrovka FALSE !!!");
 		return false;
@@ -309,55 +242,13 @@ bool BNO055_getCalibration()
 	}
 }
 
-bool BNO055_getCalibrationStart()
+void BNO055_readData()
 {
-	set_TCA9548A(multi_line_BNO);
-	uint8_t calData = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_CALIB_STAT);
-	BNO055.Calibr_sys = (calData >> 6) & 0x03;
-	Serial.print(" Calibr_sys  : ");
-	Serial.print(BNO055.Calibr_sys);
-
-	BNO055.Calibr_gyro = (calData >> 4) & 0x03;
-	Serial.print(" Calibr_gyro : ");
-	Serial.print(BNO055.Calibr_gyro);
-
-	BNO055.Calibr_accel = (calData >> 2) & 0x03;
-	Serial.print(" Calibr_accel: ");
-	Serial.print(BNO055.Calibr_accel);
-
-	BNO055.Calibr_mag = calData & 0x03;
-	Serial.print(" Calibr_mag  : ");
-	Serial.print(BNO055.Calibr_mag);
-
-	if (BNO055.Calibr_gyro < 3 || BNO055.Calibr_accel < 3 || BNO055.Calibr_mag < 3)
-	{
-		Serial.println(" Calibrovka FALSE !!!");
-		return false;
-	}
-	else
-	{
-		Serial.print(" Calibrovka TRUE !!! = ");
-		Serial.println(millis());
-
-		return true;
-	}
-}
-
-void BNO055_readEuler()
-{
-	uint64_t time_izmerenia = 0;	  // Время в которое считываем данные из датчика
-	float delta_time_izmerenia = 0;	  // Время между измерениями. передаем в ПИД регуляторы для расчетов
-	uint64_t pred_time_izmerenia = 0; // Предыдущее время измерения.
-	uint8_t xHigh = 0, xLow = 0, yLow, yHigh, zLow, zHigh;
+	uint8_t xHigh = 0, xLow = 0, yLow = 0, yHigh = 0, zLow = 0, zHigh = 0;
 	uint8_t buffer_bnoTemp[20];
 	uint8_t buffer_bno[20];
 
-	// Замеряем интервалы по времени между запросами данных
-	time_izmerenia = micros();												  // Запоминаем момент когда считали данные
-	delta_time_izmerenia = (time_izmerenia - pred_time_izmerenia) * 0.000001; // Измеряем время прошедшее с предудущего считывания данных в секундах;
-	pred_time_izmerenia = time_izmerenia;									  // Запоминаем для следущего расчета
-
-	set_TCA9548A(multi_line_BNO);
+	set_TCA9548A(multi_line_BNO2);
 	delayMicroseconds(500);
 	Wire.beginTransmission(BNO055_ADDRESS);
 	Wire.write(eBNO055_REGISTER_EUL_DATA_X_LSB); /* Make sure to set address auto-increment bit */
@@ -381,15 +272,12 @@ void BNO055_readEuler()
 		zLow = buffer_bno[4];
 		zHigh = buffer_bno[5];
 
-		/* Shift values to create properly formed integer (low byte first) */ /* 1 degree = 16 LSB  1radian = 900 LSB   */
+		/* Shift values to create properly formed integer (low byte first) */ /* 1 degree = 16 LSB  1 radian = 900 LSB   */
 		BNO055_EulerAngles.x = (int16_t)(yLow | (yHigh << 8)) / 16.;
 		BNO055_EulerAngles.y = -(int16_t)(zLow | (zHigh << 8)) / 16.;
 		BNO055_EulerAngles.z = (int16_t)(xLow | (xHigh << 8)) / 16.;
 
-		bno055.angleEller.roll = BNO055_EulerAngles.x;
-		bno055.angleEller.pitch = BNO055_EulerAngles.y;
-		bno055.angleEller.yaw = BNO055_EulerAngles.z;
-		//******************************************************************************************************************
+		// printf("%lu roll= %.4f pitch= %.4f yaw= %.4f  /  delta_th= %.4f  /  ", millis(), bno055.angleEuler.roll, bno055.angleEuler.pitch, bno055.angleEuler.yaw, delta_th);
 		xLow = buffer_bno[14];
 		xHigh = buffer_bno[15];
 		yLow = buffer_bno[16];
@@ -397,116 +285,26 @@ void BNO055_readEuler()
 		zLow = buffer_bno[18];
 		zHigh = buffer_bno[19];
 
-		BNO055_LinAccData.x = (int16_t)(yLow | (yHigh << 8));
-		BNO055_LinAccData.y = (int16_t)(zLow | (zHigh << 8));
-		BNO055_LinAccData.z = (int16_t)(xLow | (xHigh << 8));
+		// Перевод в m/s2 1m/s2 = 100 LSB, mg = 1LSB
+		BNO055_LinAccData.x = (int16_t)(xLow | (xHigh << 8)) / 100.; 
+		BNO055_LinAccData.y = (int16_t)(yLow | (yHigh << 8)) / 100.;
+		BNO055_LinAccData.z = (int16_t)(zLow | (zHigh << 8)) / 100.;// Дальше не используем так как не летаем а ездим по плоскости. И заменяем на угловую скорость полученную из угла Эллера
 
-		bno055.vel.vx = BNO055_LinAccData.x;
-		bno055.vel.vy = BNO055_LinAccData.y;
-		bno055.vel.vth = BNO055_LinAccData.z;
-
-		// Находим угловую скорость поворота в радианах в секунду
-		float delta_x = BNO055_LinAccData.x * delta_time_izmerenia;
-		float delta_y = BNO055_LinAccData.y * delta_time_izmerenia;
-		float delta_th = BNO055_LinAccData.z * delta_time_izmerenia;
-
-		// Меняем координаты и угол на основе вычислений
-		bno055.pose.x += delta_x;   // Вычисляем координаты
-		bno055.pose.y += delta_y;   // Вычисляем координаты
-		bno055.pose.th += delta_th; // Прибавляем к текущему углу и получаем новый угол куда смотрит наш робот
-
-		// printf("x= %.2f y= %.2f th= %.3f dt= %.4f  time= %u \n", g_odom_imu.x, g_odom_imu.y, g_odom_imu.th, BNO055_LinAccData.delta_time,  millis());
+		// printf("x= % .6f % .6f \n", BNO055_LinAccData.x, BNO055_LinAccData.y);
+		bno055.status = 0;
+		bno055.angleEuler = BNO055_EulerAngles;
+		bno055.linear = BNO055_LinAccData;
 	}
 	else
 	{
 		Serial.println("Error read data form BNO055.");
 	}
-
-	// НАСТРОЙКИ ПОД МОЕ ПОЛОЖЕНИЕ ДАТЧИКА !!!!!!!!!!!!!!!!!!!!!!!!!!!
-	// BNO055_EulerAngles.x = -BNO055_EulerAngles.x;
-	// if (BNO055_EulerAngles.y > 0)
-	//{
-	//	BNO055_EulerAngles.y = BNO055_EulerAngles.y - 180;
-	//}
-	// else
-	//{
-	//	BNO055_EulerAngles.y = BNO055_EulerAngles.y + 180;
-	//}
-	// BNO055_EulerAngles.z = BNO055_EulerAngles.z - 60 + 180;
-	// if (BNO055_EulerAngles.z < 0) { BNO055_EulerAngles.z = BNO055_EulerAngles.z + 360; }
-	// if (BNO055_EulerAngles.z > 360) { BNO055_EulerAngles.z = BNO055_EulerAngles.z - 360; }
-}
-
-void BNO055_readLinear()
-{
-	// set_TCA9548A(multi_line_BNO);
-	// uint8_t xHigh = 0, xLow = 0, yLow, yHigh, zLow, zHigh;
-
-	// // Указываем начиная с какого адреса запрашиваем данные
-	// Wire.beginTransmission(BNO055_ADDRESS);
-	// Wire.write(eBNO055_REGISTER_LIA_DATA_X_LSB); /* Make sure to set address auto-increment bit */
-	// Wire.endTransmission();
-
-	// // Замеряем интервалы по времени между запросами данных
-	// time_izmerenia = micros();												  // Запоминаем момент когда считали данные
-	// delta_time_izmerenia = (time_izmerenia - pred_time_izmerenia) * 0.000001; // Измеряем время прошедшее с предудущего считывания данных в секундах;
-	// pred_time_izmerenia = time_izmerenia;									  // Запоминаем для следущего расчета
-
-	// Wire.requestFrom(BNO055_ADDRESS, (int)6);
-
-	// uint8_t buffer_bnoTemp[6];
-	// uint8_t buffer_bno[6];
-
-	// int i = 0;
-	// for (; i < 6 && (Wire.available() > 0); i++)
-	// {
-	// 	buffer_bnoTemp[i] = Wire.read(); // read one byte of data
-	// }
-	// if (i >= 6) // Если считали все данные тогда переносим массив
-	// {
-	// 	for (int y = 0; y < 6; y++)
-	// 	{
-	// 		buffer_bno[y] = buffer_bnoTemp[y];
-	// 	}
-
-	// 	xLow = buffer_bno[0];
-	// 	xHigh = buffer_bno[1];
-	// 	yLow = buffer_bno[2];
-	// 	yHigh = buffer_bno[3];
-	// 	zLow = buffer_bno[4];
-	// 	zHigh = buffer_bno[5];
-
-	// 	BNO055_LinAccData.x = (int16_t)(yLow | (yHigh << 8));
-	// 	BNO055_LinAccData.y = (int16_t)(zLow | (zHigh << 8));
-	// 	BNO055_LinAccData.z = (int16_t)(xLow | (xHigh << 8));
-	// 	BNO055_LinAccData.delta_time = delta_time_izmerenia;
-
-	// 	bno055.vel_x = BNO055_LinAccData.x;
-	// 	bno055.vel_y = BNO055_LinAccData.y;
-	// 	bno055.vel_th = BNO055_LinAccData.z;
-
-	// 	// Находим угловую скорость поворота в радианах в секунду
-	// 	float delta_x = BNO055_LinAccData.x * BNO055_LinAccData.delta_time;
-	// 	float delta_y = BNO055_LinAccData.y * BNO055_LinAccData.delta_time;
-	// 	float delta_th = BNO055_LinAccData.z * BNO055_LinAccData.delta_time;
-
-	// 	// Меняем координаты и угол на основе вычислений
-	// 	bno055.x += delta_x;   // Вычисляем координаты
-	// 	bno055.y += delta_y;   // Вычисляем координаты
-	// 	bno055.th += delta_th; // Прибавляем к текущему углу и получаем новый угол куда смотрит наш робот
-
-	// printf("x= %.2f y= %.2f th= %.3f dt= %.4f  time= %u \n", g_odom_imu.x, g_odom_imu.y, g_odom_imu.th, BNO055_LinAccData.delta_time,  millis());
-	// }
-	// else
-	// {
-	// 	Serial.println("-04/");
-	// }
 }
 
 void BNO055_getStatusInfo()
 {
 	Serial.println(" ===================== BNO055_getStatusInfo ===============");
-	set_TCA9548A(multi_line_BNO);
+	// set_TCA9548A(multi_line_BNO);
 
 	WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
 
@@ -580,7 +378,7 @@ void BNO055_getStatusInfo()
 void BNO055_getRevInfo()
 {
 	Serial.println(" ===================================== BNO055_getRevInfo ===========================================");
-	set_TCA9548A(multi_line_BNO);
+	// set_TCA9548A(multi_line_BNO);
 	uint8_t a, b;
 	WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
 
@@ -615,72 +413,49 @@ void BNO055_getRevInfo()
 	Serial.println(b);
 }
 
-void BNO055_SetOffset_toEeprom()
+
+
+void BNO055_GetID_from_BNO055() // Считывание уникального номера. Не работает.Возвращает нули
 {
-	Serial.println("BNO055_SetOffset_toEeprom");
+	Serial.println("- Start BNO055_GetID_from_BNO055-");
+	byte BNO055_ID_Array[16];
+	WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
+	delay(100);
 
-	// int Radius_Magnetr = 960;
-	// BNO055_Offset_Array[20] = Radius_Magnetr&0xFF;
-	// BNO055_Offset_Array[21] = Radius_Magnetr >> 8;
+	BNO055_SetMode(eCONFIGMODE); /* Go to config mode if not there */
+	delay(100);
 
-	for (uint8_t i = 0; i < 22; i = i + 2) // Вывод на экран офсетов
+	WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_PAGE_ID, 1); // Устанавливаем работы с регистрами нулевой страницы
+	delay(100);
+
+	Wire.beginTransmission(BNO055_ADDRESS);
+	Wire.write((uint8_t)50);
+	Wire.endTransmission();
+	Wire.requestFrom(BNO055_ADDRESS, (int)16); // Считываем последовательно 16 байта начиная с 50 адреса
+	for (uint8_t i = 0; i < 16; i++)
+	{
+		BNO055_ID_Array[i] = Wire.read();
+	}
+	delay(100);
+	WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_PAGE_ID, 0); // Устанавливаем работы с регистрами нулевой страницы
+	delay(100);
+	// for (uint8_t i = 0; i < 22; i = i + 1)
+	//{
+	//	//Serial.print(i); Serial.print(" = ");Serial.println(BNO055_Offset_Array[i],BIN);
+	// }
+	for (uint8_t i = 0; i < 16; i++)
 	{
 		// Serial.print(i);
 		Serial.print(" = ");
-		Serial.print(BNO055_Offset_Array[i + 1] << 8 | BNO055_Offset_Array[i]);
+		Serial.print(BNO055_ID_Array[i]);
+		//Serial.print(BNO055_ID_Array[i + 1] << 8 | BNO055_ID_Array[i]);
 	}
-	Serial.println(" = ");
-
-	EEPROM.writeByte(0, 1); // Ставим метку в 0 байт что есть коэффициенты. в дальнейшем при считывании проверяем эту метку
-	// Serial.print("Flag 96 registr : ");Serial.println(Eeprom_ReadByte(96), BIN);
-
-	for (uint8_t i = 0; i < 22; i++)
-	{
-		// Serial.print("Write: ");Serial.println(BNO055_Offset_Array[i], BIN);
-		EEPROM.writeByte(1 + i, BNO055_Offset_Array[i]); // Начинаем с первого байти и 22 байта подряд пишем
-														 // Serial.print("Read : ");Serial.println(Eeprom_ReadByte(98 + i),BIN);
-	}
-	EEPROM.commit(); // Применяем изменения
-	Serial.println(" END SET ----------------------------------------------");
-}
-
-void BNO055_GetOffset_fromEeprom()
-{
-	Serial.println("BNO055_GetOffset_fromEeprom");
-
-	if (EEPROM.readByte(0) == 1) // Если есть поправочные значения то считываем их
-	{
-		for (uint8_t i = 0; i < 22; i++)
-		{
-			BNO055_Offset_Array[i] = EEPROM.readByte(1 + i);
-			// Serial.print(BNO055_Offset_Array[i]);
-			// Serial.print(",");
-		}
-		// Serial.println("");
-	}
-	else
-	{
-		Serial.println("BNO055_NOT Offset fromEeprom !!!!!!!!!!!!!!!!!!!!!");
-		Serial.println("BNO055 Offset Default Load   !!!!!!!!!!!!!!!!!!!!!");
-		for (uint8_t i = 0; i < 22; i++)
-		{
-			BNO055_Offset_Array[i] = BNO055_Offset_Array_dafault[i];
-		}
-		Serial.println("---");
-	}
-	// Выводим на экравн что загрузили
-	for (uint8_t i = 0; i < 22; i = i + 2)
-	{
-		// Serial.print(i);
-		Serial.print(" = ");
-		Serial.print(BNO055_Offset_Array[i + 1] << 8 | BNO055_Offset_Array[i]);
-	}
-	Serial.println(" = ");
+	Serial.println("- End BNO055_GetID_from_BNO055-");
 }
 void BNO055_GetOffset_from_BNO055()
 {
 	Serial.println("BNO055_GetOffset_from_BNO055");
-	set_TCA9548A(multi_line_BNO);
+	// set_TCA9548A(multi_line_BNO);
 
 	BNO055_SetMode(eCONFIGMODE); /* Go to config mode if not there */
 
@@ -698,28 +473,25 @@ void BNO055_GetOffset_from_BNO055()
 	//{
 	//	//Serial.print(i); Serial.print(" = ");Serial.println(BNO055_Offset_Array[i],BIN);
 	// }
-	for (uint8_t i = 0; i < 22; i = i + 2)
+	for (uint8_t i = 0; i < 22; i++)
 	{
 		// Serial.print(i);
 		Serial.print(" = ");
-		Serial.print(BNO055_Offset_Array[i + 1] << 8 | BNO055_Offset_Array[i]);
+		//Serial.print(BNO055_Offset_Array[i + 1] << 8 | BNO055_Offset_Array[i]);
+		Serial.print(BNO055_Offset_Array[i]);
 	}
-	Serial.println(" = ");
-	BNO055_SetMode(eIMU); // Возвращаем Режим работы где он все сам считает
 	Serial.println("---");
 }
-
-void BNO055_SetOffset_toBNO055()
+void BNO055_SetOffset_toBNO055( byte offsetArray_[22])
 {
 	Serial.println("BNO055_SetOffset_toBNO055");
-	set_TCA9548A(multi_line_BNO);
 	BNO055_SetMode(eCONFIGMODE); /* Go to config mode if not there */
 
-	for (uint8_t i = 0; i < 22; i = i + 2)
+	for (uint8_t i = 0; i < 22; i++)
 	{
 		// Serial.print(i);
-		Serial.print(" = ");
-		Serial.print(BNO055_Offset_Array[i + 1] << 8 | BNO055_Offset_Array[i]);
+		Serial.print(" - ");
+		Serial.print(offsetArray_[i]);
 	}
 	Serial.println(" = ");
 
@@ -727,23 +499,21 @@ void BNO055_SetOffset_toBNO055()
 	Wire.write(eBNO055_REGISTER_ACC_OFFSET_X_LSB);
 	for (uint8_t i = 0; i < 22; i++)
 	{
-		Wire.write(BNO055_Offset_Array[i]);
+		Wire.write(offsetArray_[i]);
 	}
 	byte rezult = Wire.endTransmission();
 	Serial.print("Rezult Wire.endTransmission = ");
 	Serial.println(rezult);
 	delay(100);
 
-	BNO055_getStatusInfo();
-
 	//--------------------------------------------------------
-	Serial.println("/// TEST READ *** ");
+	//Serial.println("/// TEST READ *** ");
 
 	Wire.beginTransmission(BNO055_ADDRESS);
 	Wire.write((uint8_t)eBNO055_REGISTER_ACC_OFFSET_X_LSB);
 	Wire.endTransmission();
 	Wire.requestFrom(BNO055_ADDRESS, (int)22); // Считываем последовательно 22 байта начиная с 55 адреса
-	Serial.print("Wire.available= ");
+	// Serial.print("Wire.available= ");
 	Serial.println(Wire.available());
 	for (uint8_t i = 0; i < 22; i++)
 	{
@@ -751,121 +521,53 @@ void BNO055_SetOffset_toBNO055()
 	}
 	delay(100);
 
-	for (uint8_t i = 0; i < 22; i = i + 2)
+	for (uint8_t i = 0; i < 22; i++)
 	{
 		// Serial.print(i);
-		Serial.print(" = ");
-		Serial.print(BNO055_Offset_Array[i + 1] << 8 | BNO055_Offset_Array[i]);
+		Serial.print(" - ");
+		Serial.print(BNO055_Offset_Array[i]);
 	}
 	Serial.println(" = ");
-	//--------------------------------------------------------
-
-	BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
 
 	BNO055_getStatusInfo();
-
 	Serial.println("---");
-
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_ACC_OFFSET_X_LSB, BNO055_Offset_Array[0]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_ACC_OFFSET_X_MSB, BNO055_Offset_Array[1]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_ACC_OFFSET_Y_LSB, BNO055_Offset_Array[2]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_ACC_OFFSET_Y_MSB, BNO055_Offset_Array[3]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_ACC_OFFSET_Z_LSB, BNO055_Offset_Array[4]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_ACC_OFFSET_Z_MSB, BNO055_Offset_Array[5]);
-
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_MAG_OFFSET_X_LSB, BNO055_Offset_Array[6]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_MAG_OFFSET_X_MSB, BNO055_Offset_Array[7]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_MAG_OFFSET_Y_LSB, BNO055_Offset_Array[8]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_MAG_OFFSET_Y_MSB, BNO055_Offset_Array[9]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_MAG_OFFSET_Z_LSB, BNO055_Offset_Array[10]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_MAG_OFFSET_Z_MSB, BNO055_Offset_Array[11]);
-
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_GYR_OFFSET_X_LSB, BNO055_Offset_Array[12]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_GYR_OFFSET_X_MSB, BNO055_Offset_Array[13]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_GYR_OFFSET_Y_LSB, BNO055_Offset_Array[14]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_GYR_OFFSET_Y_MSB, BNO055_Offset_Array[15]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_GYR_OFFSET_Z_LSB, BNO055_Offset_Array[16]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_GYR_OFFSET_Z_MSB, BNO055_Offset_Array[17]);
-
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_ACC_RADIUS_LSB, BNO055_Offset_Array[18]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_ACC_RADIUS_MSB, BNO055_Offset_Array[19]);
-
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_MAG_RADIUS_LSB, BNO055_Offset_Array[20]);
-	// WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_MAG_RADIUS_MSB, BNO055_Offset_Array[21]);
-}
-
-void BNO055_Start()
-{
-
-	Serial.println(" ================== BNO055_Start =================");
-	set_TCA9548A(multi_line_BNO);
-
-	BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
-	delay(100);
-	BNO055_readEuler();
-	Serial.print(" BNO055_EulerAngles.x = ");
-	Serial.println(BNO055_EulerAngles.x);
-	Serial.print(" BNO055_EulerAngles.y = ");
-	Serial.println(BNO055_EulerAngles.y);
-	Serial.print(" BNO055_EulerAngles.z = ");
-	Serial.println(BNO055_EulerAngles.z);
-}
-
-void Calibrovka_BNO055_Start()
-{
-	set_TCA9548A(multi_line_BNO);
-	BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
-
-	Serial.println("Calibrovka_BNO055_Start...");
-	while (BNO055_getCalibrationStart() == false) // Пока не откалибровалась нужно вертеть машинку
-	{
-		delay(100);
-	}
-	BNO055_GetOffset_from_BNO055(); // Считываем из датчика
 }
 
 void Calibrovka_BNO055()
 {
-	set_TCA9548A(multi_line_BNO);
-	BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
+	set_TCA9548A(multi_line_BNO2);
+	BNO055_SetMode(eIMU); // Режим работы гкалибровки где всключены все три устройства аксель гиро и магнит
+	delay(500);
 
 	Serial.println("Calibrovka_BNO055...");
 	while (BNO055_getCalibration() == false) // Пока не откалибровалась нужно вертеть машинку
 	{
-		delay(100);
+		delay(250);
 	}
 	BNO055_GetOffset_from_BNO055(); // Считываем из датчика
-	BNO055_SetOffset_toEeprom();	// Записываем в Епром
-}
-
-void ReadCalibrovka_BNO055()
-{
-	Serial.println("======================================= ReadCalibrovka_BNO055 ======================================");
-	BNO055_GetOffset_fromEeprom(); // Считываем из Епром
-	BNO055_SetOffset_toBNO055();   // Записываем в датчик
+	delay(99999999999); // Ждем и переписываев вручную данные в массив
 }
 
 void Init_BNO055()
 {
 	Serial.println(String(millis()) + " Init_BNO055");
-	set_TCA9548A(multi_line_BNO);
+
 	// pinMode(PIN_BNO055_Mode, OUTPUT);
 	// digitalWrite(PIN_BNO055_Mode, 1);     // Подаем 1 что-бы адрес был всегда один и тоже   /* 0x28 com3 low 0x29 com3 high     */
+
+	// scanI2C();
 
 	int timeOut = 0;
 	byte WIA_MPU = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_CHIP_ID);
 
 	// Serial.println("1"); 	BNO055_getInfo();
 	Serial.print(String(millis()) + " WIA_MPU BNO055: ");
-	Serial.println(WIA_MPU, BIN);
+	Serial.print(WIA_MPU, BIN);
 	if (WIA_MPU == BNO055_ID)
 	{
-		Serial.println(String(millis()) + " Successfully connected to  BNO055.");
-		// BNO055_SetMode(eCONFIGMODE); /* Go to config mode if not there */
-
-		Serial.println(String(millis()) + " eBNO055_REGISTER_SYS_TRIGGER to  BNO055. RESET");
+		Serial.println(" eBNO055_REGISTER_SYS_TRIGGER to  BNO055. RESET");
 		WriteByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_SYS_TRIGGER, 0b00100000); /* reset the sensor */
-		delay(500);
+		delay(600);
 		while (ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_CHIP_ID) != BNO055_ID)
 		{
 			delay(100);
@@ -876,10 +578,10 @@ void Init_BNO055()
 		}
 		WIA_MPU = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_CHIP_ID);
 		Serial.print(String(millis()) + " WIA_MPU BNO055: ");
-		Serial.println(WIA_MPU, BIN);
+		Serial.print(WIA_MPU, BIN);
 		if (WIA_MPU == BNO055_ID)
 		{
-			Serial.println(String(millis()) + " Successfully connected to  BNO055 after RESET.");
+			Serial.println(" Successfully connected to  BNO055 after RESET.");
 		}
 
 		delay(100);
@@ -911,62 +613,37 @@ void Init_BNO055()
 		BNO055_getStatusInfo();
 		BNO055_getRevInfo();
 		Serial.println("---------------------------------------");
+		//BNO055_GetID_from_BNO055();
 
 		Serial.println(String(millis()) + " END Init BNO055.");
-		delay(1000);
+		delay(250);
 	}
 	else
 	{
 		Serial.println(String(millis()) + " Failed to Connect to BNO055 !!!!!!!!!!!!!!");
-		// delay(1000000);
+		delay(1000000);
 	}
 }
 
 void Setup_BNO055()
 {
 	Serial.println(String(millis()) + " Setup_BNO055");
+	set_TCA9548A(multi_line_BNO2); // Выбор линии с датчиком с которым будем работать
 	Init_BNO055();
-	// Calibrovka_BNO055();
-	ReadCalibrovka_BNO055();
-	BNO055_Start(); // Запуск датчика в заданном режиме
+	//Calibrovka_BNO055(); // Калибруем если первый раз и нет еще калибровки для этого датчика.
+	BNO055_SetOffset_toBNO055(BNO055_Offset_Array_dafault2); // Установка нужного массива с калибровочными данными
+	// Запуск датчика в заданном режиме
+	Serial.println(" ================== BNO055_Start =================");
+	BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
+	delay(500);
+	BNO055_readData(); // Разовое считывание данных 
+	Serial.println(" ================== Read Start Angle =================");
+	Serial.print(" BNO055_EulerAngles.x = ");
+	Serial.print(BNO055_EulerAngles.x);
+	Serial.print(" BNO055_EulerAngles.y = ");
+	Serial.print(BNO055_EulerAngles.y);
+	Serial.print(" BNO055_EulerAngles.z = ");
+	Serial.print(BNO055_EulerAngles.z);
+	Serial.println(" ================== BNO055_End =================");
+	// delay(999999999); 
 }
-
-// Функция расчета одометрии по IMU BNO055
-void calculateOdom_imu()
-{
-	/*ЭТО РАСЧЕТ ОДОМЕТРИИ ИСПОЛЬЗУЯ УГЛОВЫЕ СКОРОСТИ ЗНАЯ НАЧАЛЬНУЮ ТОЧКУ И ВРЕМЯ МЕЖДУ ИЗМЕРЕНИЯМИ
-	  30     //compute odometry in a typical way given the velocities of the robot
-  31     double dt = (current_time - last_time).toSec();
-  32     double delta_x = (vx * cos(th) - vy * sin(th)) * dt;
-  33     double delta_y = (vx * sin(th) + vy * cos(th)) * dt;
-  34     double delta_th = vth * dt;
-  35
-  36     x += delta_x;
-  37     y += delta_y;
-  38     th += delta_th;
-	*/
-}
-
-/*
-Кватернион — это ось, относительно которой будем вращать объект и угол, на который мы будем вращать объект относительно этой оси.
-Всего у кватерниона четыре компоненты: X, Y, Z и W. XYZ — та самая ось поворота (нормализуем и каждый компонент умножаем на синус половины угла), W — угол поворота (который задается через косинус половины угла).
-
-Псевдокод получения кватерниона из угла и оси:
-def quatFromAngleAxis(self, a, x, y, z):
-	# Длина вектора xyz
-	l = sqrt(x * x + y * y + z * z)
-	# Нормализуем вектор xyz
-	x = x / l
-	y = y / l
-	z = z / l
-	# Синус половины угла (a - угол в радианах)
-	hSin = sin(a / 2)
-	# Заполняем xyz
-	self.x = x * hSin
-	self.y = y * hSin
-	self.z = z * hSin
-	# Косинус половины угла
-	hCos = cos(a / 2)
-	# Заполняем w
-	self.w = hCos
-	*/

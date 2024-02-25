@@ -5,9 +5,9 @@
 
 //************************ ОБЬЯВЛЕНИЕ ФУНКЦИЙ *******************************************
 
-void set_TCA9548A(uint8_t bus);                // Функция устанавляивающая нужное положение на мультиплексоре
-void initLed();                                // Настройка пинов светодиодов
-void Led_Blink(int led_, unsigned long time_); // Функция мигания светодиодом в основном цикле
+void set_TCA9548A(uint8_t bus);                            // Функция устанавляивающая нужное положение на мультиплексоре
+void initLed();                                            // Настройка пинов светодиодов
+void Led_Blink(int led_, unsigned long time_);             // Функция мигания светодиодом в основном цикле
 void printData2Driver_receive();                           // Печать пришедших данных
 void executeCommand();                                     // Отработка пришедших команд. Изменение скорости, траектории и прочее
 void IRAM_ATTR onTimer();                                  // Обработчик прерывания таймера 0 по совпадению A 	1 раз в 1 милисекунду // Функция исполняемая по прерыванию по таймеру 0
@@ -31,18 +31,19 @@ led43 led2812; // Экземпляр класса
 VL53L0X Sensor_VL53L0X_L;
 VL53L0X Sensor_VL53L0X_R;
 
-float lazer_L = 0; // Данные с датчиков лазерных левого и правого
-float lazer_R = 0; // Данные с датчиков лазерных левого и правого
+float laser_L = 0; // Данные с датчиков лазерных левого и правого
+float laser_R = 0; // Данные с датчиков лазерных левого и правого
 
 #include "uzi.h"
 
 // Функция устанавляивающая нужное положение на мультиплексоре
-void set_TCA9548A(uint8_t bus)
+void set_TCA9548A(uint8_t bus_)
 {
-  if (bus > 7)
+  if (bus_ > 7)
     return;
+  // Serial.printf("set_TCA9548A -> %i \n", bus_);
   Wire.beginTransmission(Addr_TCA9548A); // TCA9548A адрес 0x70  or 0x77
-  Wire.write(1 << bus);                  // отправляем байт на выбранную шину
+  Wire.write(1 << bus_);                 // отправляем байт на выбранную шину
   Wire.endTransmission();
 }
 // set_TCA9548A(num_line_); // Переключаем мультиплексор
@@ -85,12 +86,17 @@ void printData2Driver_receive()
 // Отработка пришедших команд. Изменение скорости, траектории и прочее
 void executeCommand()
 {
+  static SControl predControl;
 // Управление шаговыми мотрами движения
 #ifdef MOTOR
-  flagExecuteCommand = true;
-  timeExecuteCommand = millis();   // Запоминаем время когда дали команду моторам вращаться. Если через 1 секунду не поступит новой команды моторы остановятся сами movementTime()
-  setSpeed_L(Data2Driver_receive.control.speedL); // Задаем скорость левого колеса в метрах в секунду
-  setSpeed_R(Data2Driver_receive.control.speedR); // Задаем скорость правого колеса в метрах в секунду
+  if (Data2Driver_receive.control.speedL != 0 || Data2Driver_receive.control.speedR != 0 || predControl.speedL != 0 || predControl.speedR != 0) // Если хоть одна скорость не равна нулю то исполняем, иначе пропускаем и драйвера отключаться.
+  {
+    flagExecuteCommand = true;
+    timeExecuteCommand = millis();                  // Запоминаем время когда дали команду моторам вращаться. Если через 1 секунду не поступит новой команды моторы остановятся сами movementTime()
+    setSpeed_L(Data2Driver_receive.control.speedL); // Задаем скорость левого колеса в метрах в секунду
+    setSpeed_R(Data2Driver_receive.control.speedR); // Задаем скорость правого колеса в метрах в секунду
+  }
+  predControl = Data2Driver_receive.control; // Запоминаем на следующий раз какая была ранее задана скорость
 #endif
 
 // Управление светодиодами
@@ -152,45 +158,19 @@ void initTimer_0()
 void collect_Driver2Data()
 {
   Driver2Data_send.id++;
-
-
-  Driver2Data_send.car.speedEncod = car.speedEncod;
-
-  Driver2Data_send.motorLeft.rpsSet = motorLeft.rpsSet;
-  Driver2Data_send.motorLeft.rpsEncod = motorLeft.rpsEncod;
-
-  Driver2Data_send.motorRight.rpsSet = motorRight.rpsSet;
-  Driver2Data_send.motorRight.rpsEncod = motorRight.rpsEncod;
-
+  Driver2Data_send.motor = motor;
   Driver2Data_send.bno055 = bno055;
-
-  Driver2Data_send.lazer1.distance = lazer1.distance;
-  Driver2Data_send.lazer2.distance = lazer2.distance;
-  Driver2Data_send.uzi1.distance = uzi.distance;
-  
-  Driver2Data_send.spi.all = spi.all;
-  Driver2Data_send.spi.bed = spi.bed;
-
+  Driver2Data_send.laserL = laserL;
+  Driver2Data_send.laserR = laserR;
+  Driver2Data_send.uzi = uzi;
+  Driver2Data_send.spi = spi;
   Driver2Data_send.cheksum = measureCheksum(Driver2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
-
-  // Serial.println("");
 }
 
 //
 void printBody()
 {
-
   printf(" id= %i \n", Driver2Data_send.id);
-  // printf(" odom_L= %f \n", Driver2Data_send.odom_L);
-  // printf(" odom_R= %f \n", Driver2Data_send.odom_R);
-  // printf(" speed_L= %f \n", Driver2Data_send.speed_L);
-  // printf(" speed_R= %f \n", Driver2Data_send.speed_R);
-  // printf(" roll= %f \n", Driver2Data_send.bno055.roll);
-  // printf(" pitch= %f \n", Driver2Data_send.bno055.pitch);
-  // printf(" yaw= %f \n", Driver2Data_send.bno055.yaw);
-  // printf(" voltage= %f \n", Driver2Data_send.ina.voltage);
-  // printf(" current= %f \n", Driver2Data_send.ina.current);
-  // printf(" capacity_percent= %f \n", Driver2Data_send.ina.capacity_percent);
   // printf(" capacity_real= %f \n", Driver2Data_send.ina.capacity_real);
   printf(" Send cheksum= %i  \n --- \n", Driver2Data_send.cheksum);
 }
@@ -253,29 +233,32 @@ void Init_VL53L0X(VL53L0X &sensor_, byte adr, byte line_)
 void loop_VL53L0X()
 {
 
-  float lazer_L_temp = Read_VL53L0X(Sensor_VL53L0X_L, multi_line_VL53L0X_L) / 1000.0; // Преобразуем в метры
-  float lazer_R_temp = Read_VL53L0X(Sensor_VL53L0X_R, multi_line_VL53L0X_R) / 1000.0; // Преобразуем в метры
+  float laser_L_temp = Read_VL53L0X(Sensor_VL53L0X_L, multi_line_VL53L0X_L) / 1000.0; // Преобразуем в метры
+  float laser_R_temp = Read_VL53L0X(Sensor_VL53L0X_R, multi_line_VL53L0X_R) / 1000.0; // Преобразуем в метры
 
-  // lazer_L = (lazer_L_temp * 0.66) + (lazer_L * 0.34); // Небольшое сглаживание с прошлым результатом Можно отфильтровать Калманом если нужно
-  // lazer_R = (lazer_R_temp * 0.66) + (lazer_R * 0.34); // Небольшое сглаживание с прошлым результатом Можно отфильтровать Калманом если нужно
+  // laser_L = (laser_L_temp * 0.66) + (laser_L * 0.34); // Небольшое сглаживание с прошлым результатом Можно отфильтровать Калманом если нужно
+  // laser_R = (laser_R_temp * 0.66) + (laser_R * 0.34); // Небольшое сглаживание с прошлым результатом Можно отфильтровать Калманом если нужно
 
-  lazer_L = filtr_My(lazer_L, lazer_L_temp, 0.90);
-  lazer_R = filtr_My(lazer_R, lazer_R_temp, 0.90);
+  laser_L = filtr_My(laser_L, laser_L_temp, 0.90);
+  laser_R = filtr_My(laser_R, laser_R_temp, 0.90);
 
-  // lazer_L = lazer_L_temp;
-  // lazer_R = lazer_R_temp;
+  // laser_L = laser_L_temp;
+  // laser_R = laser_R_temp;
 
   // Ограничение в 1 метр
-  if (lazer_L > 1)
-    lazer_L = 1.111;
-  if (lazer_R > 1)
-    lazer_R = 1.111;
+  if (laser_L > 1)
+    laser_L = 1.111;
+  if (laser_R > 1)
+    laser_R = 1.111;
 
-  lazer1.distance = lazer_L;
-  lazer2.distance = lazer_R;
+  laserL.distance = laser_L;
+  laserL.status = 0;
 
-  // Serial.printf(" lazer1.distance = %f ", lazer1.distance);
-  // Serial.printf(" lazer2.distance = %f \n", lazer2.distance);
+  laserR.distance = laser_R;
+  laserR.status = 0;
+
+  // Serial.printf(" laserL.distance = %f ", laserL.distance);
+  // Serial.printf(" laserR.distance = %f \n", laserR.distance);
 }
 
 #endif

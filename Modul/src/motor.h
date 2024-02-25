@@ -93,17 +93,17 @@ void initMotor()
     digitalWrite(PIN_M2_Dir, 0); //  Подтяжка чтобы не в воздухе сделал резистором на плате что-бы при перезагрузке не дергалось
     motor[2].dir_pin = PIN_M2_Dir;
 
-    pinMode(PIN_M3_Step, OUTPUT); // Устанавливаем пины для M3 мотора
+    pinMode(PIN_M3_Step, OUTPUT); // Устанавливаем пины для M3 мотора 
     digitalWrite(PIN_M3_Step, 0); // Подтяжка чтобы не в воздухе
     motor[3].step_pin = PIN_M3_Step;
     pinMode(PIN_M3_Dir, OUTPUT);
     digitalWrite(PIN_M3_Dir, 0); //  Подтяжка чтобы не в воздухе сделал резистором на плате что-бы при перезагрузке не дергалось
     motor[3].dir_pin = PIN_M3_Dir;
 
-    // motor[0].globalTransform = TRANSFORM_M0;
-    // motor[1].globalTransform = TRANSFORM_M1;
-    // motor[2].globalTransform = TRANSFORM_M2;
-    // motor[3].globalTransform = TRANSFORM_M3;
+    pinMode(PIN_MICRIC_M0, INPUT_PULLUP); // 
+    pinMode(PIN_MICRIC_M1, INPUT_PULLUP); // 
+    pinMode(PIN_MICRIC_M2, INPUT_PULLUP); // 
+    pinMode(PIN_MICRIC_M3, INPUT_PULLUP); // 
 
     motor[0].micric_pin = PIN_MICRIC_M0;
     motor[1].micric_pin = PIN_MICRIC_M1;
@@ -132,8 +132,6 @@ void IRAM_ATTR ISR39()
 {
     motor[0].status = false;
 }
-
-
 
 // Функция исполняемая по прерыванию по таймеру 1 на все МОТОРЫ
 void IRAM_ATTR onTimer1() // Обработчик прерывания таймера 0 по совпадению A

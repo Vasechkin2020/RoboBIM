@@ -5,10 +5,9 @@
 #define EEPROM_SIZE 32 // define the number of bytes you want to access
 
 // Контакты для светодиодов:
-#define PIN_LED_GREEN 4  // Совпадает с драйверами на платформу.
+#define PIN_LED_GREEN 4 // Совпадает с драйверами на платформу.
 // Нельзя использовать нулевой пин Не работает пин. При инициализации SPI_slave функция его занимает и дает всегда половину напряжения и он не реагирует на команды.
 // #define PIN_ANALIZ 27 //Совпадает с драйвером под платформу, закоментить изменить после отладки
-
 
 volatile bool flag_timer_1sec = false;
 volatile bool flag_timer_10millisec = false;
@@ -22,14 +21,22 @@ hw_timer_t *timer1 = NULL;
 hw_timer_t *timer2 = NULL;
 hw_timer_t *timer3 = NULL;
 
-#define Addr_TCA9548A 0x70 // Адреc платы мультиплексора шины I2C
-#define multi_line_BNO 2       // На какой линии мультиплексора находится датчик BNO055
+#define Addr_TCA9548A 0x70     // Адреc платы мультиплексора шины I2C
+#define multi_line_BNO 0       // На какой линии мультиплексора находится датчик BNO055
+#define multi_line_BNO2 2       // На какой линии мультиплексора находится датчик BNO055
 #define multi_line_VL53L0X_L 0 // На какой линии мультиплексора находится датчик VL53L0X
 #define multi_line_VL53L0X_R 1 // На какой линии мультиплексора находится датчик VL53L0X
 
 //****************************************************************************************************************************************************
-//Структура по обратной связи по обмену по шине SPI
-struct  SSpi
+// Структура по обратной связи по обмену по шине SPI
+
+struct SXyz // 
+{
+  float x = 0;  
+  float y = 0;  
+  float z = 0; 
+};
+struct SSpi
 {
   uint32_t all = 0;
   uint32_t bed = 0;
@@ -37,8 +44,8 @@ struct  SSpi
 // Структура управления движением
 struct SControl
 {
-  float speedL = 0;        // Скорость с которой нужно двигаться`
-  float speedR = 0;        // Скорость с которой нужно двигаться`
+  float speedL = 0;   // Скорость с которой нужно двигаться в оборотах/секунда !!!!!!!!!
+  float speedR = 0;   // Скорость с которой нужно двигаться в оборотах/секунда !!!!!!!!!!!!!!!!
 };
 // Структура управления Светодиодами
 struct SLed
@@ -46,88 +53,57 @@ struct SLed
   int32_t num_program = 0; // Номер программы для светодиодов мигания
 };
 // Структура получаемых данных от Data к контроллеру Driver
-struct Struct_Data2Driver
+struct SData2Driver
 {
-  uint32_t id = 0;        // Номер команды по порядку
-  SControl control; // Структура управления машиной
-  SLed led;         // Управление светодиодами
-  uint32_t cheksum = 0;   // Контрольная сумма данных в структуре
+  uint32_t id = 0;         // Номер команды по порядку
+  SControl control;        // Структура управления машиной
+  SLed led;                // Управление светодиодами
+  uint32_t cheksum = 0;    // Контрольная сумма данных в структуре
 };
 
-Struct_Data2Driver Data2Driver_receive;                         // Экземпляр структуры получаемых данных
+SData2Driver Data2Driver_receive;                               // Экземпляр структуры получаемых данных
 const int size_structura_receive = sizeof(Data2Driver_receive); // Размер структуры с данными которые получаем
 
 //*****************************************************************************************************************************************************
 // Структура сосдержит всю информацию по мотору на основании данных энкодера
-struct SEncoder
+struct SMotor
 {
-  float rpsSet = 0; // Заданная скорость вращения ( обороты в секунду)
-  float rpsEncod = 0; // Реальная скорость вращения по енкодерам( обороты в секунду)
-};
-// Структура сосдержит общую информацию по машинке
-struct SCar
-{
-  float speedSetL = 0;  // Скорость которую задали в функции (метры в секунду)
-  float speedSetR = 0;  // Скорость которую задали в функции (метры в секунду)
-  float speedEncod = 0;  // Текущая скорость движения (метры в секунду)
-  float way = 0; // Пройденный путь в метрах
-};
-struct SPose
-{
-  float x = 0;      // Координата по Х
-  float y = 0;      // Координата по Y
-  float th = 0;     // Направление носа
-};
-struct SEller
-{
-  float roll = 0;   // Крен в право  влево
-  float pitch = 0;  // Тангаж вверх или вних
-  float yaw = 0;    // Поворот по часовой мом против часовой
+  uint32_t statusDriver = 1; // Статус драйвера.Включен или выключен.Удерживаются колосеса или свободно катаются 1-выключен
+  float rpsEncodL = 0;       // Реальная скорость вращения по енкодерам( обороты в секунду)
+  float rpsEncodR = 0;       // Реальная скорость вращения по енкодерам( обороты в секунду)
 };
 
-// Структура для углов наклонов
-struct SVel
+struct SMpu // Структура с данными со всех датчиков, отправляем наверх
 {
-  float vx = 0;  // Линейная скорость движения робота по оси X
-  float vy = 0;  // Линейная скорость движения робота по оси Y
-  float vth = 0; // Угловая скорость вращения робота
+  int32_t status = 0; // статус состояния
+  SXyz angleEuler;
+  SXyz linear;
 };
-
-struct SImu // Структура с данными со всех датчиков, отправляем наверх
-{
-  SPose pose;
-  SVel vel;
-  SEller angleEller;
-};
-
 
 // Структура состояния датчика расстония
 struct SSensor
 {
-  float distance; // расстояние до препятствия
+  int32_t status = 0; // статус состояния
+  float distance = 0; // расстояние до препятствия
 };
-//Отдельные структуры для каждой сущности
-SCar car; // Данные в целом по машинке
-SEncoder motorLeft;
-SEncoder motorRight;
-SImu bno055;    // Данные с датчика BNO055
-SSensor lazer1;
-SSensor lazer2;
+// Отдельные структуры для каждой сущности
+SMotor motor;
+SMpu bno055; // Данные с датчика BNO055
+SSensor laserL;
+SSensor laserR;
 SSensor uzi;
-SSpi spi;            // Структура по состоянию обмена по шине SPI
+SSpi spi; // Структура по состоянию обмена по шине SPI
 
 // Структура в которой все главные переменные передаюся на высокий уровень
 struct Struct_Driver2Data
 {
   uint32_t id = 0; // id команды
-  SCar car;
-  SEncoder motorLeft;
-  SEncoder motorRight;
-  SImu bno055;    // Данные с датчика BNO055
-  SSensor lazer1;
-  SSensor lazer2;
-  SSensor uzi1;
-  SSpi spi;            // Структура по состоянию обмена по шине SPI
+  SMotor motor;
+  SMpu bno055;      // Данные с датчика BNO055
+  SSensor laserL;
+  SSensor laserR;
+  SSensor uzi;
+  SSpi spi;             // Структура по состоянию обмена по шине SPI
   uint32_t cheksum = 0; // Контрольная сумма данных в структуре
 };
 
