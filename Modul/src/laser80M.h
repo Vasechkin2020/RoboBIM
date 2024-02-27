@@ -3,43 +3,42 @@
 
 //*********************** ОБЬЯВЛЕНИЕ ФУНКЦИЙ *****************************************
 // Функции применимык к конкретному датчику, так как задается адрес датчика
-void singleMeasurement(byte addr_);     // Одиночное измерение примерно 800 милисекунд
-void continuousMeasurement(byte addr_); // Непрерывное измерение
-void stopMeasurement(byte addr_);       // Прекратить измерение
-bool setAddress(byte addr_);            // Установка нового адрес на датчике
+void singleMeasurement(byte addr_);          // Одиночное измерение примерно 800 милисекунд
+void continuousMeasurement(byte addr_);      // Непрерывное измерение
+void stopMeasurement(byte addr_);            // Прекратить измерение
+bool setAddress(byte addr_);                 // Установка нового адрес на датчике
 bool readCache(byte addr_);                  // Считывание данных из буфера датчика результат измерения
-void controlLaser(byte status_, byte addr_); // Управление лазером 1- Включен 0-Выключен
+bool controlLaser(byte status_, byte addr_); // Управление лазером 1- Включен 0-Выключен
 
 // Функции применяются ко всем датчикам на линии и поэтому калибровку и прочее делать с одиночным датчиком
-void broadcastMeasurement();                 // Единое измерние. Команда всем подключенным датчикам произвести измерение.Потом его надо считать с каждого датчика
+void broadcastMeasurement(); // Единое измерние. Команда всем подключенным датчикам произвести измерение.Потом его надо считать с каждого датчика
 
-bool setDistanceModification(byte data_); // Модификация дистанции. Думаю что колибровка измерений. Можно в плюс или в минус
-bool setTimeInterval(byte data_);         // Установка инрервала вывода значения при настройке. Не понятно что это. 
-bool setStartingPoint(byte data_);        // Устанвка точки откоторой считем расстояние. 1- от носа 0 - от зада
-void setRange(byte range_);               // Установление максимального диапзона измерений. Возможно 5,10,30,50,80 метров
-void setFrequency(byte freq_);            // Установка частоты измерений, задается в герцах 3,5,10,20 только такие частоты
-void setResolution(byte reso_);           // Установка разрешения измерения есди 1- то 1 мм, если 2 то 0,1 мм. Непонятно работает ли нет фактически и на чем сказывается (время измерения?)
-bool setTestPowerOn(byte data_);          // Установка нужно ли проводить тест датчика после включения питания. Значение 0 или 1
-
+bool setDistanceModification(int8_t data_); // Модификация дистанции. Думаю что колибровка измерений. Можно в плюс или в минус
+bool setTimeInterval(byte data_);           // Установка инрервала вывода значения при настройке. Не понятно что это.
+bool setStartingPoint(byte data_);          // Устанвка точки откоторой считем расстояние. 1- от носа 0 - от зада
+bool setRange(byte range_);                 // Установление максимального диапзона измерений. Возможно 5,10,30,50,80 метров
+bool setFrequency(byte freq_);              // Установка частоты измерений, задается в герцах 3,5,10,20 только такие частоты
+bool setResolution(byte reso_);             // Установка разрешения измерения есди 1- то 1 мм, если 2 то 0,1 мм. Непонятно работает ли нет фактически и на чем сказывается (время измерения?)
+bool setTestPowerOn(byte data_);            // Установка нужно ли проводить тест датчика после включения питания. Значение 0 или 1
 
 //************************************************************************************
-byte calcCs(byte *data_) // Расчет контрольной суммы. Берется массив всех оправляемых данных без последнего байта и суммируется побайтно, потом в бинарном виде инвертируются 1 в нолик и нолик в единицу и потом прибавляется 1
+byte calcCs(byte *data_, byte len_) // Расчет контрольной суммы. Берется массив всех оправляемых данных без последнего байта и суммируется побайтно, потом в бинарном виде инвертируются 1 в нолик и нолик в единицу и потом прибавляется 1
 {
-    byte ret = 0;
-    // Serial.print(sizeof(data_), DEC);
-    for (int i = 0; i < (sizeof(data_)); i++)
+    uint32_t sum = 0;
+    // Serial.println(len_, DEC);
+    for (int i = 0; i < (len_ - 1); i++) // Считаем без последнего байта
     {
-        ret += data_[i];
+        sum += data_[i];
         // Serial.print(data_[i], HEX);
-        // Serial.print("-");
+        //  Serial.print("-");
     }
     // Serial.println(" |");
-    // Serial.print(ret, DEC);
+    // Serial.print(sum, DEC);
     // Serial.print(" ");
-    // Serial.print(ret, HEX);
+    // Serial.print(sum, HEX);
     // Serial.print(" ");
-    // Serial.println(ret, BIN);
-    ret = (ret ^ 0b11111111) + 1;
+    // Serial.println(sum, BIN);
+    ret = (sum ^ 0b1111111111111111) + 1; // инвертируем биты
     // Serial.print(ret, DEC);
     // Serial.print(" ");
     // Serial.print(ret, HEX);
@@ -50,23 +49,52 @@ byte calcCs(byte *data_) // Расчет контрольной суммы. Бе
 // Одиночное измерение примерно 800 милисекунд
 void singleMeasurement(byte addr_)
 {
+    digitalWrite(PIN_LED, 1);
+    while (Serial2.available()) // Очищаем буфер
+        Serial2.read();
+
     byte buf[4] = {addr_, 0x06, 0x02, 0x00}; // Команда без последнего байта, там будет контрольная сумма, а пока 0х00
-    buf[3] = calcCs(buf);
+    buf[3] = calcCs(buf, 4);
     Serial2.write(buf, 4);
+    delay(850);
+    byte len = 11;
+    byte bufRead[len];
+    for (int i = 0; i < len; i++)
+    {
+        bufRead[i] = Serial2.read();
+        printf("%X-", bufRead[i]);
+    }
+    digitalWrite(PIN_LED, 0);
+    printf("\n");
+    byte sot = (bufRead[3] - 0x30) * 100;       // По таблице ASCII отнимаем 48 и получаем сколько сотен метров
+    byte des = (bufRead[4] - 0x30) * 10;        // По таблице ASCII отнимаем 48 и получаем сколько десятков метров
+    byte met = (bufRead[5] - 0x30) * 1;         // По таблице ASCII отнимаем 48 и получаем сколько единиц метров
+    float desMet = (bufRead[7] - 0x30) * 0.1;   // По таблице ASCII отнимаем 48 и получаем сколько десятых долей метра
+    float sotMet = (bufRead[8] - 0x30) * 0.01;  // По таблице ASCII отнимаем 48 и получаем сколько сотых долей метра
+    float tysMet = (bufRead[9] - 0x30) * 0.001; // По таблице ASCII отнимаем 48 и получаем сколько тысячных долей метра
+    float distance = sot + des + met + desMet + sotMet + tysMet;
+
+    printf("Meas= %i - %i - %i . %.1f %.2f %.3f | ", sot, des, met, desMet, sotMet, tysMet);
+    printf("Distance= %f \n", distance);
+    // if (bufRead[0] == addr_ && buf[1] == 0x06 && buf[2] == 0x82 && buf[3] == 0x45 && buf[4] == 0x52 && buf[4] == 0x52) // Проверка на ошибку. Возвращает ADDR 06 82"'E' 'R' 'R' '-' '-' '3X' '3X' ”CS
+    // {
+    //     printf("readMeasurement ERROR \n");
+    //     return false;
+    // }
 }
 
 // Непрерывное измерение
 void continuousMeasurement(byte addr_)
 {
     byte buf[4] = {addr_, 0x06, 0x03, 0x00};
-    buf[3] = calcCs(buf);
+    buf[3] = calcCs(buf, 4);
     Serial2.write(buf, 4);
 }
 // Прекратить измерение
 void stopMeasurement(byte addr_)
 {
     byte buf[4] = {addr_, 0x04, 0x02, 0x00};
-    buf[3] = calcCs(buf);
+    buf[3] = calcCs(buf, 4);
     Serial2.write(buf, 4);
     delay(10);
     buf[0] = Serial2.read();
@@ -96,7 +124,7 @@ bool readCache(byte addr_)
     while (Serial2.available()) // Очищаем буфер
         Serial2.read();
     byte buf[4] = {addr_, 0x06, 0x07, 0x00};
-    buf[3] = calcCs(buf); // Считаем контрольную сумму и записываем последним байтом
+    buf[3] = calcCs(buf, 4); // Считаем контрольную сумму и записываем последним байтом
     Serial2.write(buf, 4);
     delay(20);
     byte len = 11;
@@ -119,45 +147,65 @@ bool readCache(byte addr_)
 
     return true;
 }
-// Установка инрервала вывода значения при настройке. Не понятно что это. 
+// Установка инрервала вывода значения при настройке. Не понятно что это.
 bool setTimeInterval(byte data_)
 {
-    if (data_ == 0) // через 1 секунду
+    if (data_ == 0) // через 0 секунду
     {
-        byte buf[5] = {0xFA, 0x04, 0x05, 0x00, 0xFC};
+        byte buf[5] = {0xFA, 0x04, 0x05, 0x00, 0xFD};
         Serial2.write(buf, 5);
     }
-    if (data_ == 1) // через 0 секунду
+    if (data_ == 1) // через 1 секунду
     {
-        byte buf[5] = {0xFA, 0x04, 0x05, 0x01, 0xFD};
+        byte buf[5] = {0xFA, 0x04, 0x05, 0x01, 0xFC};
         Serial2.write(buf, 5);
     }
-
+    delay(1000);
+    byte bufRead[5];
+    bufRead[0] = Serial2.read();
+    bufRead[1] = Serial2.read();
+    bufRead[2] = Serial2.read();
+    bufRead[3] = Serial2.read();
+    bufRead[4] = Serial2.read();
+    printf("setTimeInterval DATA => %X %X %X %X %X\n", bufRead[0], bufRead[1], bufRead[2], bufRead[3], bufRead[4]);
+    if (bufRead[0] == 0xFA && bufRead[1] == 0x04 && bufRead[2] == 0x85 && bufRead[3] == 0x7D)
+    {
+        printf("setTimeInterval ok \n");
+        return true;
+    }
+    else
+    {
+        printf("setTimeInterval ERROR\n");
+        return false;
+    }
 }
 // Установка нового адрес на датчике Широковещательный команда, смотреть что датчик один в этот момент на шине.
 bool setAddress(byte addr_)
 {
     byte buf[5] = {0xFA, 0x04, 0x01, addr_, 0x00};
-    buf[4] = calcCs(buf);
+    buf[4] = calcCs(buf, 5);
     Serial2.write(buf, 5);
-    delay(10);
-    buf[0] = Serial2.read();
-    buf[1] = Serial2.read();
-    buf[2] = Serial2.read();
-    buf[3] = Serial2.read();
-    if (buf[0] == 0xFA && buf[1] == 0x04 && buf[2] == 0x81 && buf[3] == 0x81)
+    delay(1000);
+    byte bufRead[5];
+    bufRead[0] = Serial2.read();
+    bufRead[1] = Serial2.read();
+    bufRead[2] = Serial2.read();
+    bufRead[3] = Serial2.read();
+    bufRead[4] = Serial2.read();
+    printf("setAddress DATA => %X %X %X %X %X\n", bufRead[0], bufRead[1], bufRead[2], bufRead[3], bufRead[4]);
+    if (bufRead[0] == 0xFA && bufRead[1] == 0x04 && bufRead[2] == 0x81 && bufRead[3] == 0x81)
     {
-        // printf("setAddress ok \n");
+        printf("setAddress ok \n");
         return true;
     }
     else
     {
-        // printf("setAddress ERROR \n");
+        printf("setAddress ERROR\n");
         return false;
     }
 }
 // Модификация дистанции. Думаю что колибровка измерений. Можно в плюс или в минус
-bool setDistanceModification(byte data_)
+bool setDistanceModification(int8_t data_)
 {
     byte sign_;
     if (data_ > 0) // Если корректировка плюсовая
@@ -168,10 +216,29 @@ bool setDistanceModification(byte data_)
     {
         sign_ = 0x2d;
     }
-
+    data_ = abs(data_);
     byte buf[6] = {0xFA, 0x04, 0x06, sign_, data_, 0x00};
-    buf[5] = calcCs(buf);
+    // byte *bufAddr = (byte *)buf; // Создаем переменную в которую пишем адрес буфера в нужном формате
+    buf[5] = calcCs(buf, 6);
     Serial2.write(buf, 6);
+    delay(1000);
+    byte bufRead[5];
+    bufRead[0] = Serial2.read();
+    bufRead[1] = Serial2.read();
+    bufRead[2] = Serial2.read();
+    bufRead[3] = Serial2.read();
+    bufRead[4] = Serial2.read();
+    printf("setAddress DATA => %X %X %X %X %X\n", bufRead[0], bufRead[1], bufRead[2], bufRead[3], bufRead[4]);
+    if (bufRead[0] == 0xFA && bufRead[1] == 0x04 && bufRead[2] == 0x8B && bufRead[3] == 0x77)
+    {
+        printf("setDistanceModification ok \n");
+        return true;
+    }
+    else
+    {
+        printf("setDistanceModification ERROR \n");
+        return false;
+    }
 }
 // Устанвка точки откоторой считем расстояние. 1- от носа 0 - от зада
 bool setStartingPoint(byte data_)
@@ -185,6 +252,25 @@ bool setStartingPoint(byte data_)
     {
         byte buf[5] = {0xFA, 0x04, 0x08, 0x01, 0xF9};
         Serial2.write(buf, 5);
+    }
+    delay(1000);
+    byte bufRead[5];
+    bufRead[0] = Serial2.read();
+    bufRead[1] = Serial2.read();
+    bufRead[2] = Serial2.read();
+    bufRead[3] = Serial2.read();
+    bufRead[4] = Serial2.read();
+    printf("setAddress DATA => %X %X %X %X %X\n", bufRead[0], bufRead[1], bufRead[2], bufRead[3], bufRead[4]);
+
+    if (bufRead[0] == 0xFA && bufRead[1] == 0x04 && bufRead[2] == 0x88 && bufRead[3] == 0x7A)
+    {
+        printf("setStartingPoint ok \n");
+        return true;
+    }
+    else
+    {
+        printf("setStartingPoint ERROR \n");
+        return false;
     }
 }
 
@@ -203,7 +289,7 @@ bool setTestPowerOn(byte data_)
     }
 }
 // Установление максимального диапзона измерений. Возможно 5,10,30,50,80 метров
-void setRange(byte range_)
+bool setRange(byte range_)
 {
     if (range_ == 5) //
     {
@@ -230,10 +316,28 @@ void setRange(byte range_)
         byte buf[5] = {0xFA, 0x04, 0x09, 0x50, 0xA9};
         Serial2.write(buf, 5);
     }
+    delay(1000);
+    byte bufRead[5];
+    bufRead[0] = Serial2.read();
+    bufRead[1] = Serial2.read();
+    bufRead[2] = Serial2.read();
+    bufRead[3] = Serial2.read();
+    bufRead[4] = Serial2.read();
+    printf("setRange DATA => %X %X %X %X %X\n", bufRead[0], bufRead[1], bufRead[2], bufRead[3], bufRead[4]);
+    if (bufRead[0] == 0xFA && bufRead[1] == 0x04)
+    {
+        printf("setRange ok \n");
+        return true;
+    }
+    else
+    {
+        printf("setRange ERROR\n");
+        return false;
+    }
 }
 
 // Установка разрешения измерения есди 1- то 1 мм, если 2 то 0,1 мм. Непонятно работает ли нет фактически и на чем сказывается (время измерения?)
-void setResolution(byte reso_)
+bool setResolution(byte reso_)
 {
     if (reso_ == 1) //
     {
@@ -245,9 +349,27 @@ void setResolution(byte reso_)
         byte buf[5] = {0xFA, 0x04, 0x0C, 0x02, 0xF4};
         Serial2.write(buf, 5);
     }
+    delay(1000);
+    byte bufRead[5];
+    bufRead[0] = Serial2.read();
+    bufRead[1] = Serial2.read();
+    bufRead[2] = Serial2.read();
+    bufRead[3] = Serial2.read();
+    bufRead[4] = Serial2.read();
+    printf("setResolution DATA => %X %X %X %X %X\n", bufRead[0], bufRead[1], bufRead[2], bufRead[3], bufRead[4]);
+    if (bufRead[0] == 0xFA && bufRead[1] == 0x04)
+    {
+        printf("setResolution ok \n");
+        return true;
+    }
+    else
+    {
+        printf("setResolution ERROR\n");
+        return false;
+    }
 }
 // Установка частоты измерений, задается в герцах 3,5,10,20 только такие частоты
-void setFrequency(byte freq_)
+bool setFrequency(byte freq_)
 {
     if (freq_ == 3) //  примерно 3 Hz
     {
@@ -269,21 +391,57 @@ void setFrequency(byte freq_)
         byte buf[5] = {0xFA, 0x04, 0x0A, 0x14, 0xE4};
         Serial2.write(buf, 5);
     }
+    delay(1000);
+    byte bufRead[5];
+    bufRead[0] = Serial2.read();
+    bufRead[1] = Serial2.read();
+    bufRead[2] = Serial2.read();
+    bufRead[3] = Serial2.read();
+    bufRead[4] = Serial2.read();
+    printf("setFrequency DATA => %X %X %X %X %X\n", bufRead[0], bufRead[1], bufRead[2], bufRead[3], bufRead[4]);
+    if (bufRead[0] == 0xFA && bufRead[1] == 0x04)
+    {
+        printf("setFrequency ok \n");
+        return true;
+    }
+    else
+    {
+        printf("setFrequency ERROR\n");
+        return false;
+    }
 }
 // Управление лазером 1- Включен 0-Выключен
-void controlLaser(byte status_, byte addr_)
+bool controlLaser(byte status_, byte addr_)
 {
     if (status_ == 0) //  Выключить
     {
         byte buf[5] = {addr_, 0x06, 0x05, 0x00, 0x00};
-        buf[4] = calcCs(buf);
+        buf[4] = calcCs(buf, 5);
         Serial2.write(buf, 5);
     }
     if (status_ == 1) //  Включить
     {
         byte buf[5] = {addr_, 0x06, 0x05, 0x01, 0x00};
-        buf[4] = calcCs(buf);
+        buf[4] = calcCs(buf, 5);
         Serial2.write(buf, 5);
+    }
+    delay(1000);
+    byte bufRead[5];
+    bufRead[0] = Serial2.read();
+    bufRead[1] = Serial2.read();
+    bufRead[2] = Serial2.read();
+    bufRead[3] = Serial2.read();
+    bufRead[4] = Serial2.read();
+    printf("controlLaser DATA => %X %X %X %X %X\n", bufRead[0], bufRead[1], bufRead[2], bufRead[3], bufRead[4]);
+    if (bufRead[0] == addr_ && bufRead[1] == 0x06 && bufRead[2] == 0x85 && bufRead[3] == 0x01)
+    {
+        printf("controlLaser ok \n");
+        return true;
+    }
+    else
+    {
+        printf("controlLaser ERROR \n");
+        return false;
     }
 }
 #endif
