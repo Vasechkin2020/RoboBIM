@@ -12,6 +12,8 @@
 #include "code.h"
 #include "protokolSPI.h"
 
+bool flag = false;
+
 void setup()
 {
     pinMode(2, OUTPUT); // Временно для отладки
@@ -72,6 +74,8 @@ void setup()
 
     Serial.println(String(millis()) + " End SetUp !!!");
     digitalWrite(PIN_LED, 0);
+    flag = true;
+    delay(3000);
 }
 
 #include "laser80M.h"
@@ -117,6 +121,21 @@ void loop()
         flag_timer_1sec = false;
 
         byte addr = 0x80;
+
+    if (flag)
+    {
+        flag = false;
+        setTimeInterval(0);
+        setStartingPoint(1);
+        setRange(30);
+        setFrequency(5);
+        setResolution(1);
+        setDistanceModification(-19);
+        //delay(100);
+
+
+    }
+    
         singleMeasurement(addr);
 
         // controlLaser(0,80);
@@ -155,8 +174,8 @@ void loop()
         // printBody();
     }
 
-    Led_Blink(PIN_LED, 500); // Мигаем светодиодом каждую 1/2 секунду, что-бы было видно что цикл не завис
-    // digitalWrite(PIN_ANALIZ, 0);
+    //Led_Blink(PIN_LED, 500); // Мигаем светодиодом каждую 1/2 секунду, что-бы было видно что цикл не завис
+    // digitalWrite(PIN_LED, 0);
 }
 
 //***********************************************************************
