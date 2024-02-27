@@ -1,12 +1,9 @@
 
-#define MOTOR yes
+// #define MOTOR yes
 #define SPI_protocol yes
 
 #include <Arduino.h>
 #include <Wire.h>
-
-// #define MOTOR yes
-// #define BNO_def yes
 
 #include "config.h" // Основной конфигурационный файл с общими настройками
 
@@ -22,19 +19,20 @@ void setup()
     digitalWrite(PIN_LED, 1);
 
     Serial.begin(115200);
+    Serial2.begin(9600);
     delay(500);
-    Serial.println(String(millis()) + "Start ESP32_Modul printBIM(c) 2024 printBIM.com");
+    Serial.println(String(millis()) + "Start ESP32_Modul printBIM(c) 2024 printBIM.com 22");
 
-    initInterrupt(); // Инициализация прерывания на концевиках
-    initTimer_0();   // Запуск таймера 0
+    initTimer_0(); // Запуск таймера 0
 
 #ifdef MOTOR
+    initInterrupt();      // Инициализация прерывания на концевиках
     initMotor();          // Начальная инициализация и настройка шаговых моторов
     setSpeedMotor(SPEED); // Устанавливаем скорость вращения моторов и в дальнейшем только флагами включаем или отключаем вращение
     initTimer_1();        // Запускаем после того как установили скоростьи посчитали интервал импульсов. Таймер на моторы, один на все так как управляем по положению я макисмально возможной скоростью передвижения
-    //testMotorRun();
+    // testMotorRun();
 
-    setZeroMotor();       // Установка в ноль
+    setZeroMotor(); // Установка в ноль
     // digitalWrite(PIN_Motor_En, 0); // 0- Разрешена работа 1- запрещена работа драйвера
     // printf("countPulse= %i \n", countPulse);
     // int32_t aa = micros();
@@ -76,6 +74,8 @@ void setup()
     digitalWrite(PIN_LED, 0);
 }
 
+#include "laser80M.h"
+
 void loop()
 {
     // digitalWrite(PIN_ANALIZ, 1);
@@ -85,7 +85,6 @@ void loop()
         flag_timer_50millisec = false;
         // flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц
     }
-
 
     //----------------------------- По факту обмена данными с верхним уровнем --------------------------------------
     if (flag_data) // Если обменялись данными
@@ -97,10 +96,10 @@ void loop()
                                  // Data2Modul_receive.command = 0; // В ручном режиме имитирую приход нужной команды
         executeDataReceive();    // Выполнение пришедших команд
 
-        //printf(" Receive id= %i cheksum= %i command= %i ", Data2Modul_receive.id, Data2Modul_receive.cheksum,Data2Modul_receive.command );
-        // printf(" All= %i bed= %i ", spi.all, spi.bed);
-        //printf(" angle0= %.2f angle1= %.2f angle2= %.2f angle3= %.2f", Data2Modul_receive.angle[0], Data2Modul_receive.angle[1], Data2Modul_receive.angle[2], Data2Modul_receive.angle[3] );
-        // printf(" \n");
+        // printf(" Receive id= %i cheksum= %i command= %i ", Data2Modul_receive.id, Data2Modul_receive.cheksum,Data2Modul_receive.command );
+        //  printf(" All= %i bed= %i ", spi.all, spi.bed);
+        // printf(" angle0= %.2f angle1= %.2f angle2= %.2f angle3= %.2f", Data2Modul_receive.angle[0], Data2Modul_receive.angle[1], Data2Modul_receive.angle[2], Data2Modul_receive.angle[3] );
+        //  printf(" \n");
 
         collect_Data_for_Send(); // Собираем данные в структуре для отправки
         spi_slave_queue_Send();  // Закладываем данные в буфер для передачи(обмена)
@@ -116,6 +115,35 @@ void loop()
     if (flag_timer_1sec) // Вызывается каждую секунду
     {
         flag_timer_1sec = false;
+
+        byte addr = 0x80;
+        singleMeasurement(addr);
+
+        // controlLaser(0,80);
+        // byte buf[5] = {0x80, 0x06, 0x05, 0x01, 0x74};
+        // sizeof(buf);
+        // inversBit(buf);
+        // byte cS = buf[0] + buf[1] + buf[2] + buf[3];
+        // Serial.print(cS,DEC);
+        // Serial.print(" ");
+        // Serial.print(cS,HEX);
+        // Serial.print(" ");
+        // Serial.println(cS,BIN);
+        // byte ret = (cS ^ 0b11111111) + 1;
+        // Serial.print(ret,DEC);
+        // Serial.print(" ");
+        // Serial.print(ret,HEX);
+        // Serial.print(" ");
+        // Serial.println(ret,BIN);
+        // byte ret = (byte)data_ ^ 0b11111111;
+        // Serial.println(ret, BIN);
+
+
+
+        // stopMeasurement(addr);
+        //  broadcastMeasurement();
+        // delay(777); // Время когда будет готов результат измерения
+        // readCache(addr);
         disableMotor(); // Отключение моторов при простое
 
         printf(" %.3f  \n", millis() / 1000.0); // Печать времени что программа не зависла, закомментировать в реальной работе
