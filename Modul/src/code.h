@@ -7,7 +7,7 @@ void IRAM_ATTR onTimer();     // Обработчик прерывания та�
 void collect_Data_for_Send(); // Собираем нужные данные и пишем в структуру на отправку
 void executeDataReceive();    // Отработка пришедших команд. Изменение скорости, траектории и прочее
 template <typename T>
-uint32_t measureCheksum(const T &structura_);           // Функция возвращает контрольную сумму структуры без последних 4 байтов
+uint32_t measureCheksum(const T &structura_); // Функция возвращает контрольную сумму структуры без последних 4 байтов
 // float tfLocalToGlobal360(float _angle, uint8_t _motor); // Функция преобразования из локальной системы координат в глобальную360
 // float tfGlobal360ToLocal(float _angle, uint8_t _motor); // Функция преобразования из глобальной 360 в локальную систему моторов
 float filtr_My(float old_, float new_, float ves_new_); // Функция фильтрующая(сглаживающая) значения берет старое с меньшим весом и новое с большим
@@ -50,10 +50,9 @@ void Led_Blink(int led_, unsigned long time_)
 // Отработка пришедших команд. Изменение скорости, траектории и прочее
 void executeDataReceive()
 {
-
   static int command_pred = 0; // Переменная для запоминания предыдущей команды
   // Команда 0
-  if (Data2Modul_receive.command == 0) // Если идет команда  0
+  if (Data2Modul_receive.controlMotor.command == 0) // Если идет команда  0
   {
     // for (int i = 0; i < 4; i++)
     // {
@@ -64,25 +63,24 @@ void executeDataReceive()
   // printf("com = %i \n", Data2Modul_receive.command);
 
   // Команда УПРАВЛЕНИЯ УГЛАМИ
-  if (Data2Modul_receive.command == 1) // Если пришла команда 2 Управления
-  { 
+  if (Data2Modul_receive.controlMotor.command == 1) // Если пришла команда 2 Управления
+  {
     for (int i = 0; i < 4; i++)
     {
-      //float angle = tfGlobal360ToLocal(Data2Modul_receive.angle[i], i);
-      //printf("motor= %i loc_angle= %f \n", i, angle);
-      // setMotorAngle(i, angle);
-      setMotorAngle(i, Data2Modul_receive.angle[i]);
+      // float angle = tfGlobal360ToLocal(Data2Modul_receive.angle[i], i);
+      // printf("motor= %i loc_angle= %f \n", i, angle);
+      //  setMotorAngle(i, angle);
+      setMotorAngle(i, Data2Modul_receive.controlMotor.angle[i]);
     }
   }
 
   // Команда КОЛИБРОВКИ И УСТАНОВКИ В 0
-  if (Data2Modul_receive.command == 9 && Data2Modul_receive.command != command_pred) // Если пришла команда 9 Колибровки и предыдущая была другая
+  if (Data2Modul_receive.controlMotor.command == 9 && Data2Modul_receive.controlMotor.command != command_pred) // Если пришла команда 9 Колибровки и предыдущая была другая
   {
     setZeroMotor(); // Установка в ноль
   }
 
-
-  command_pred = Data2Modul_receive.command; // Запоминаяем команду
+  command_pred = Data2Modul_receive.controlMotor.command; // Запоминаяем команду
   //     // printf(" Data2Modul.radius= %f ", Data2Modul_receive.radius);
 }
 
@@ -132,15 +130,15 @@ void collect_Data_for_Send()
 
   for (int i = 0; i < 4; i++)
   {
-    Modul2Data_send.motor[i].status = motor[i].status;                                            // Считываем состояние пина драйверов
+    Modul2Data_send.motor[i].status = motor[i].status; // Считываем состояние пина драйверов
     // Modul2Data_send.motor[i].position = tfLocalToGlobal360(getAngle(motor[i].position), i);       // Записываем текущую позицию преобразуя из импульсов в градусы, надо еще в глобальную систему преобразовывать
     // Modul2Data_send.motor[i].destination = tfLocalToGlobal360(getAngle(motor[i].destination), i); // Считываем цель по позиции, надо еще в глобальную систему преобразовывать
     Modul2Data_send.motor[i].position = getAngle(motor[i].position);       // Записываем текущую позицию преобразуя из импульсов в градусы, надо еще в глобальную систему преобразовывать
     Modul2Data_send.motor[i].destination = getAngle(motor[i].destination); // Считываем цель по позиции, надо еще в глобальную систему преобразовывать
 
-    Modul2Data_send.lidar[i].status = lidar[i].status;     // Считываем статаус дальномера
-    Modul2Data_send.lidar[i].distance = lidar[i].distance; // Считываем измерение растояния
-    Modul2Data_send.lidar[i].angle = lidar[i].angle;       // Считываем угол в котором произмели измерение
+    Modul2Data_send.laser[i].status = laser[i].status;     // Считываем статаус дальномера
+    Modul2Data_send.laser[i].distance = laser[i].distance; // Считываем измерение растояния
+    Modul2Data_send.laser[i].angle = laser[i].angle;       // Считываем угол в котором произмели измерение
 
     Modul2Data_send.micric[i] = digitalRead(motor[i].micric_pin); //
   }
@@ -179,5 +177,53 @@ void printBody()
   // printf(" capacity_real= %f \n", Modul2Data_send.ina.capacity_real);
   printf(" Send cheksum= %i  \n --- \n", Modul2Data_send.cheksum);
 }
+
+#ifdef LASER
+// Обработка датчиков так что-бы не задерживать основной цикл и делать все короткими операциями
+void laserLoop()
+{
+  static bool flagBroadcastRequest = true;              // Флаг можно ли делать запрос на измерение
+  static unsigned long timeBroadcastRequest = millis(); // Время когда сделали запрос/ Достаточно точности в милисекундах
+  static bool flagGetStatus = true;                     // Флаг можно ли делать запрос на измерение
+  static unsigned long timeGetStatus = millis();        // Время когда сделали запрос/ Достаточно точности в милисекундах
+  static int i = 0;
+
+  if (flagBroadcastRequest) // Если нет измерения то меряем
+  {
+    flagBroadcastRequest = false;            // смена флага
+    sk60plus[0].getBroadcastSingleMeasure(); // Щироковещательный запрос на измерние
+    timeBroadcastRequest = millis();         // Запоминаем когда сделали запрос
+    i = 0;                                   // Номер лазера с которым работаем
+    printf("--- \n");
+  }
+  if ((flagBroadcastRequest == false) && (millis() >= timeBroadcastRequest + 150)) // Через 150 милисекунд попадем сюда после начала измерения
+  {
+    if (flagGetStatus) // Если можно запрашивать статус
+    {
+      flagGetStatus = false;    // Смена статуса
+      sk60plus[i].getStatus();  // Запрашиваем статус датчика. Ответ будет через 2 миллисекунды
+      timeGetStatus = millis(); // Запоминаем когда сделали запрос
+    }
+
+    if ((flagGetStatus == false) && (millis() >= timeGetStatus + 5)) // Если сделали запрос и прошло 2 милисекунды
+    {
+      if (sk60plus[i].readStatus()) // Читаем статус Если ответ по статусу хороший то
+      {
+        sk60plus[i].getMeasureResult(); // Запрашиваем результат
+        delay(5);
+        sk60plus[i].readMeasureResult(); //  Считываем результат измерений
+        flagGetStatus = true;            // Разрешаем новый запрос на считывание статуса
+        i++;                             // Переходим к следующему датчику
+        if (i == 4)                      // Обработали последний датчик
+        {
+          flagBroadcastRequest = true; // Разрешаем новый широковещвтельный запрос на измерение и все начинается по кругу
+        }
+      }
+      else
+        flagGetStatus = true; // Разрешаем сделать еще новый запрос
+    }
+  }
+}
+#endif
 
 #endif

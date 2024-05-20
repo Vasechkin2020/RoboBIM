@@ -5,18 +5,19 @@
 
 //************************ ОБЬЯВЛЕНИЕ ФУНКЦИЙ *******************************************
 
-void set_TCA9548A(uint8_t bus);                            // Функция устанавляивающая нужное положение на мультиплексоре
-void initLed();                                            // Настройка пинов светодиодов
-void Led_Blink(int led_, unsigned long time_);             // Функция мигания светодиодом в основном цикле
-void printData2Driver_receive();                           // Печать пришедших данных
-void executeCommand();                                     // Отработка пришедших команд. Изменение скорости, траектории и прочее
-void IRAM_ATTR onTimer();                                  // Обработчик прерывания таймера 0 по совпадению A 	1 раз в 1 милисекунду // Функция исполняемая по прерыванию по таймеру 0
-void initTimer_0();                                        // Инициализация таймера 0. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
-void collect_Driver2Data();                                // Собираем нужные данные и пишем в структуру на отправку
-void printBody();                                          //
-uint32_t Read_VL53L0X(VL53L0X &sensor_, byte line_);       //
-void Init_VL53L0X(VL53L0X &sensor_, byte adr, byte line_); // Инициализация левого датчика с адресом 0x30
-void loop_VL53L0X();                                       //
+void set_TCA9548A(uint8_t bus);                                 // Функция устанавляивающая нужное положение на мультиплексоре
+void initLed();                                                 // Настройка пинов светодиодов
+void Led_Blink(int led_, unsigned long time_);                  // Функция мигания светодиодом в основном цикле
+void ledBlink(int ledStart_, int ledEnd_, unsigned long time_); // Функция мигания группой светодиодов в основном цикле
+void printData2Driver_receive();                                // Печать пришедших данных
+void executeCommand();                                          // Отработка пришедших команд. Изменение скорости, траектории и прочее
+void IRAM_ATTR onTimer();                                       // Обработчик прерывания таймера 0 по совпадению A 	1 раз в 1 милисекунду // Функция исполняемая по прерыванию по таймеру 0
+void initTimer_0();                                             // Инициализация таймера 0. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
+void collect_Driver2Data();                                     // Собираем нужные данные и пишем в структуру на отправку
+void printBody();                                               //
+SSensor Read_VL53L0X(VL53L0X &sensor_, byte line_);             //
+void Init_VL53L0X(VL53L0X &sensor_, byte adr, byte line_);      // Инициализация левого датчика с адресом 0x30
+void loop_VL53L0X();                                            //
 //***************************************************************************************
 
 // Файлы с функциями отдельных сущностей
@@ -73,13 +74,33 @@ void Led_Blink(int led_, unsigned long time_)
   }
 }
 
+// Функция мигания группой светодиодов в основном цикле
+void ledBlink(int ledStart_, int ledEnd_, unsigned long time_)
+{
+  static unsigned long led_time = 0;
+  static bool led_status = 0;
+  if ((millis() - led_time) > time_)
+  {
+    led_status = 1 - led_status;
+    if (led_status == 1)
+    {
+      led2812._ledUp(ledStart_, ledEnd_, green);
+    }
+    else
+    {
+      led2812._ledUp(ledStart_, ledEnd_, black);
+    }
+    led_time = millis();
+  }
+}
+
 // Печать пришедших данных
 void printData2Driver_receive()
 {
   printf(" id= %i ", Data2Driver_receive.id);
   printf(" speedL= %f ", Data2Driver_receive.control.speedL);
   printf(" speedR= %f ", Data2Driver_receive.control.speedR);
-  printf(" led.num_program= %i ", Data2Driver_receive.led.num_program);
+  // printf(" led.num_program= %i ", Data2Driver_receive.led.num_program);
   printf(" \n ");
 }
 
@@ -101,19 +122,7 @@ void executeCommand()
 
 // Управление светодиодами
 #ifdef LED_def
-  switch (Data2Driver_receive.led)
-  {
-  case 0:
-    if (led2812.flag_led_off == 0)
-      led2812.run0();
-    break;
-  case 1:
-    led2812.run1(); // Основной цикл мигания светодиодами. В нем пишем все чем захочем мигать. Занимает примерно 1,5 миллисекунды
-    break;
-  case 2:
-    led2812.run2();
-    break;
-  }
+  led2812._translate(Data2Driver_receive.led); // Передача полученных данных по светодиодам
 #endif
 }
 
@@ -175,19 +184,22 @@ void printBody()
   printf(" Send cheksum= %i  \n --- \n", Driver2Data_send.cheksum);
 }
 //
-uint32_t Read_VL53L0X(VL53L0X &sensor_, byte line_)
+SSensor Read_VL53L0X(VL53L0X &sensor_, byte line_)
 {
   set_TCA9548A(line_);
-  uint32_t rez = 0;
+  SSensor rez;
   // float rez = sensor.readRangeContinuousMillimeters();
   if ((sensor_.readReg(0x13) & 0x07) != 0)
   {
-    rez = sensor_.readReg16Bit(0x1E);
+    rez.distance = sensor_.readReg16Bit(0x1E);
+    rez.status = 1; // Статус все хорошо
     sensor_.writeReg(0x0B, 0x01);
   }
   else
   {
-    Serial.println("Error Read_VL53L0X.");
+    rez.status = -1; // Статус все плохо
+    // Serial.print("Error Read_VL53L0X. Line= ");
+    // Serial.println(line_);
   }
   return rez;
 }
@@ -229,18 +241,20 @@ void Init_VL53L0X(VL53L0X &sensor_, byte adr, byte line_)
 
   Serial.println("End Init_VL53L0X ");
 }
-
+// Считывание датчиков, фильтрация и установка статуса
 void loop_VL53L0X()
 {
 
-  float laser_L_temp = Read_VL53L0X(Sensor_VL53L0X_L, multi_line_VL53L0X_L) / 1000.0; // Преобразуем в метры
-  float laser_R_temp = Read_VL53L0X(Sensor_VL53L0X_R, multi_line_VL53L0X_R) / 1000.0; // Преобразуем в метры
+  SSensor laser_L_temp = Read_VL53L0X(Sensor_VL53L0X_L, multi_line_VL53L0X_L); // Считываем значение и статус
+  SSensor laser_R_temp = Read_VL53L0X(Sensor_VL53L0X_R, multi_line_VL53L0X_R); // Считываем значение и статус
 
+  float distanceL = laser_L_temp.distance / 1000.0; // Преобразуем в метры
+  float distanceR = laser_R_temp.distance / 1000.0; // Преобразуем в метры
   // laser_L = (laser_L_temp * 0.66) + (laser_L * 0.34); // Небольшое сглаживание с прошлым результатом Можно отфильтровать Калманом если нужно
   // laser_R = (laser_R_temp * 0.66) + (laser_R * 0.34); // Небольшое сглаживание с прошлым результатом Можно отфильтровать Калманом если нужно
 
-  laser_L = filtr_My(laser_L, laser_L_temp, 0.90);
-  laser_R = filtr_My(laser_R, laser_R_temp, 0.90);
+  laser_L = filtr_My(laser_L, distanceL, 0.90); // Небольшое сглаживание с прошлым результатом Берем предыдущее значение и немного нового
+  laser_R = filtr_My(laser_R, distanceR, 0.90);
 
   // laser_L = laser_L_temp;
   // laser_R = laser_R_temp;
@@ -252,13 +266,94 @@ void loop_VL53L0X()
     laser_R = 1.111;
 
   laserL.distance = laser_L;
-  laserL.status = 0;
+  laserL.status = laser_L_temp.status;
 
   laserR.distance = laser_R;
-  laserR.status = 0;
+  laserR.status = laser_R_temp.status;
 
-  // Serial.printf(" laserL.distance = %f ", laserL.distance);
-  // Serial.printf(" laserR.distance = %f \n", laserR.distance);
+  //   Serial.printf(" laserL.distance = %f ", laserL.distance);
+  //   Serial.printf(" laserR.distance = %f \n", laserR.distance);
 }
 
+// Функция выравнивания верхней платформы
+void platforma()
+{
+  int l = 0;
+  int r = 0;
+  if (BNO055_EulerAngles.y > 0.1 && BNO055_EulerAngles.y < 3) // Управление вверх нос или вниз pitch
+  {
+    l += 1;
+    r += 1;
+  }
+  if (BNO055_EulerAngles.y < -0.1 && BNO055_EulerAngles.y > -3)
+  {
+    l -= 1;
+    r -= 1;
+  }
+  if (BNO055_EulerAngles.y >= -0.1 && BNO055_EulerAngles.y <= 0.1)
+  {
+    l = r = 0;
+  }
+
+  if (BNO055_EulerAngles.x > 0.1 && BNO055_EulerAngles.x < 3) // Управление наклон вправо влево roll
+  {
+    l -= 1;
+    r += 1;
+  }
+  if (BNO055_EulerAngles.x < -0.1 && BNO055_EulerAngles.x > -3)
+  {
+    l += 1;
+    r -= 1;
+  }
+  if (BNO055_EulerAngles.x >= -0.1 && BNO055_EulerAngles.x <= 0.1)
+  {
+    // l += 1;
+    // r += 1;
+  }
+
+  if (l > 0)
+  {
+    digitalWrite(Pla_PIN_En, 0);    // 0- Разрешена работа 1- запрещена работа драйвера
+    digitalWrite(Pla_PIN_L_Dir, 1); //
+    flag_motor_PLA_L = 1;           // Разрешение на импульсы
+  }
+  else
+  {
+    if (l < 0)
+    {
+      digitalWrite(Pla_PIN_En, 0);    // 0- Разрешена работа 1- запрещена работа драйвера
+      digitalWrite(Pla_PIN_L_Dir, 0); //
+      flag_motor_PLA_L = 1;           // Разрешение на импульсы
+    }
+    if (l == 0)
+    {
+      flag_motor_PLA_L = 0; // Запрет на импульсы
+    }
+  }
+
+  if (r > 0)
+  {
+    digitalWrite(Pla_PIN_En, 0);    // 0- Разрешена работа 1- запрещена работа драйвера
+    digitalWrite(Pla_PIN_R_Dir, 1); //
+    flag_motor_PLA_R = 1;           // Разрешение на импульсы
+  }
+  else
+  {
+    if (r < 0)
+    {
+      digitalWrite(Pla_PIN_En, 0);    // 0- Разрешена работа 1- запрещена работа драйвера
+      digitalWrite(Pla_PIN_R_Dir, 0); //
+      flag_motor_PLA_R = 1;           // Разрешение на импульсы
+    }
+    if (r == 0)
+    {
+      flag_motor_PLA_R = 0; // Запрет на импульсы
+    }
+  }
+  if (l == 0 && r == 0)
+  {
+    digitalWrite(Pla_PIN_En, 1); // 0- Разрешена работа 1- запрещена работа драйвера
+  }
+  printf("l= %i r= %i \n", l, r);
+}
 #endif

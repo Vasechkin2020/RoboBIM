@@ -4,14 +4,14 @@
 #define BNO055_ID (0b10100000) /* pg58                             */
 
 byte BNO055_Offset_Array[22];																										// Массив для хранения офсетов
-byte BNO055_Offset_Array_dafault[22]{    234,  255,  18,   0,  228, 255, 248, 255, 40, 254, 248, 255, 253, 255, 1, 0, 1, 0, 232, 3, 176, 4}; // Массив для хранения офсетов по умолчанию
-byte BNO055_Offset_Array_dafault2[22]{   240,  255,  7,    0,   249,   255, 0,  0,  0,  0,  0,  0,  255,  255,  255,  255,  255,  255,  232,  3,  224,  1}; // Красный датчик
-									// = 2   = 0   = 212 = 255 = 15   = 0  = 0 = 0 = 0 = 0 = 0 = 0 = 0   = 0   = 255 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
-									// = 37  = 0   = 198 = 255 = 61   = 0  = 0 = 0 = 0 = 0 = 0 = 0 = 252 = 255 = 0   = 0   = 0   = 0   = 232 = 3 = 224 = 1---
-									// = 7   = 0   = 191 = 255 = 241 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 254 = 255 = 254 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
-									// = 243 = 255 = 234 = 255 = 248 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 251 = 255 = 3   = 0   = 255 = 255 = 232 = 3 = 224 = 1---
-									// = 240 = 255 = 7   = 0   = 249 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 255 = 255 = 255 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
-									// = 226 = 255 = 235 = 255 = 248 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 255 = 255 = 255 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
+byte BNO055_Offset_Array_dafault[22]{234, 255, 18, 0, 228, 255, 248, 255, 40, 254, 248, 255, 253, 255, 1, 0, 1, 0, 232, 3, 176, 4}; // Массив для хранения офсетов по умолчанию
+byte BNO055_Offset_Array_dafault2[22]{240, 255, 7, 0, 249, 255, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 232, 3, 224, 1};	// Красный датчик
+																																	// = 2   = 0   = 212 = 255 = 15   = 0  = 0 = 0 = 0 = 0 = 0 = 0 = 0   = 0   = 255 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
+																																	// = 37  = 0   = 198 = 255 = 61   = 0  = 0 = 0 = 0 = 0 = 0 = 0 = 252 = 255 = 0   = 0   = 0   = 0   = 232 = 3 = 224 = 1---
+																																	// = 7   = 0   = 191 = 255 = 241 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 254 = 255 = 254 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
+																																	// = 243 = 255 = 234 = 255 = 248 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 251 = 255 = 3   = 0   = 255 = 255 = 232 = 3 = 224 = 1---
+																																	// = 240 = 255 = 7   = 0   = 249 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 255 = 255 = 255 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
+																																	// = 226 = 255 = 235 = 255 = 248 = 255 = 0 = 0 = 0 = 0 = 0 = 0 = 255 = 255 = 255 = 255 = 255 = 255 = 232 = 3 = 224 = 1---
 
 struct BNO055_Info_s
 {
@@ -209,7 +209,7 @@ void BNO055_SetMode(byte mode_)
 
 bool BNO055_getCalibration()
 {
-	//set_TCA9548A(multi_line_BNO);
+	// set_TCA9548A(multi_line_BNO);
 	uint8_t calData = ReadByte_I2C(BNO055_ADDRESS, eBNO055_REGISTER_CALIB_STAT);
 	BNO055.Calibr_sys = (calData >> 6) & 0x03;
 	Serial.print(" Calibr_sys  : ");
@@ -227,7 +227,7 @@ bool BNO055_getCalibration()
 	Serial.print(" Calibr_mag  : ");
 	Serial.print(BNO055.Calibr_mag);
 
-	//if (BNO055.Calibr_sys < 3 || BNO055.Calibr_gyro < 3 || BNO055.Calibr_accel < 3 || BNO055.Calibr_mag < 3)
+	// if (BNO055.Calibr_sys < 3 || BNO055.Calibr_gyro < 3 || BNO055.Calibr_accel < 3 || BNO055.Calibr_mag < 3)
 	if (BNO055.Calibr_gyro < 3 || BNO055.Calibr_accel < 3)
 	{
 		Serial.println(" Calibrovka FALSE !!!");
@@ -274,10 +274,15 @@ void BNO055_readData()
 
 		/* Shift values to create properly formed integer (low byte first) */ /* 1 degree = 16 LSB  1 radian = 900 LSB   */
 		BNO055_EulerAngles.x = (int16_t)(yLow | (yHigh << 8)) / 16.;
-		BNO055_EulerAngles.y = -(int16_t)(zLow | (zHigh << 8)) / 16.;
+		BNO055_EulerAngles.y = (int16_t)(zLow | (zHigh << 8)) / 16.; // Положение датчика перевернутое
 		BNO055_EulerAngles.z = (int16_t)(xLow | (xHigh << 8)) / 16.;
 
-		// printf("%lu roll= %.4f pitch= %.4f yaw= %.4f  /  delta_th= %.4f  /  ", millis(), bno055.angleEuler.roll, bno055.angleEuler.pitch, bno055.angleEuler.yaw, delta_th);
+		BNO055_EulerAngles.y = 180 - BNO055_EulerAngles.y; // Испрвления для ориентации датчика
+		if (BNO055_EulerAngles.y > 180)
+			BNO055_EulerAngles.y = BNO055_EulerAngles.y - 360;
+
+		//printf("%lu roll= %.4f pitch= %.4f yaw= %.4f  /  \n ", millis(), BNO055_EulerAngles.x, BNO055_EulerAngles.y, BNO055_EulerAngles.z);
+
 		xLow = buffer_bno[14];
 		xHigh = buffer_bno[15];
 		yLow = buffer_bno[16];
@@ -286,9 +291,9 @@ void BNO055_readData()
 		zHigh = buffer_bno[19];
 
 		// Перевод в m/s2 1m/s2 = 100 LSB, mg = 1LSB
-		BNO055_LinAccData.x = (int16_t)(xLow | (xHigh << 8)) / 100.; 
+		BNO055_LinAccData.x = (int16_t)(xLow | (xHigh << 8)) / 100.;
 		BNO055_LinAccData.y = (int16_t)(yLow | (yHigh << 8)) / 100.;
-		BNO055_LinAccData.z = (int16_t)(zLow | (zHigh << 8)) / 100.;// Дальше не используем так как не летаем а ездим по плоскости. И заменяем на угловую скорость полученную из угла Эллера
+		BNO055_LinAccData.z = (int16_t)(zLow | (zHigh << 8)) / 100.; // Дальше не используем так как не летаем а ездим по плоскости. И заменяем на угловую скорость полученную из угла Эллера
 
 		// printf("x= % .6f % .6f \n", BNO055_LinAccData.x, BNO055_LinAccData.y);
 		bno055.status = 0;
@@ -413,8 +418,6 @@ void BNO055_getRevInfo()
 	Serial.println(b);
 }
 
-
-
 void BNO055_GetID_from_BNO055() // Считывание уникального номера. Не работает.Возвращает нули
 {
 	Serial.println("- Start BNO055_GetID_from_BNO055-");
@@ -448,7 +451,7 @@ void BNO055_GetID_from_BNO055() // Считывание уникального �
 		// Serial.print(i);
 		Serial.print(" = ");
 		Serial.print(BNO055_ID_Array[i]);
-		//Serial.print(BNO055_ID_Array[i + 1] << 8 | BNO055_ID_Array[i]);
+		// Serial.print(BNO055_ID_Array[i + 1] << 8 | BNO055_ID_Array[i]);
 	}
 	Serial.println("- End BNO055_GetID_from_BNO055-");
 }
@@ -477,12 +480,12 @@ void BNO055_GetOffset_from_BNO055()
 	{
 		// Serial.print(i);
 		Serial.print(" = ");
-		//Serial.print(BNO055_Offset_Array[i + 1] << 8 | BNO055_Offset_Array[i]);
+		// Serial.print(BNO055_Offset_Array[i + 1] << 8 | BNO055_Offset_Array[i]);
 		Serial.print(BNO055_Offset_Array[i]);
 	}
 	Serial.println("---");
 }
-void BNO055_SetOffset_toBNO055( byte offsetArray_[22])
+void BNO055_SetOffset_toBNO055(byte offsetArray_[22])
 {
 	Serial.println("BNO055_SetOffset_toBNO055");
 	BNO055_SetMode(eCONFIGMODE); /* Go to config mode if not there */
@@ -507,7 +510,7 @@ void BNO055_SetOffset_toBNO055( byte offsetArray_[22])
 	delay(100);
 
 	//--------------------------------------------------------
-	//Serial.println("/// TEST READ *** ");
+	// Serial.println("/// TEST READ *** ");
 
 	Wire.beginTransmission(BNO055_ADDRESS);
 	Wire.write((uint8_t)eBNO055_REGISTER_ACC_OFFSET_X_LSB);
@@ -545,7 +548,7 @@ void Calibrovka_BNO055()
 		delay(250);
 	}
 	BNO055_GetOffset_from_BNO055(); // Считываем из датчика
-	delay(99999999999); // Ждем и переписываев вручную данные в массив
+	delay(99999999999);				// Ждем и переписываев вручную данные в массив
 }
 
 void Init_BNO055()
@@ -613,7 +616,7 @@ void Init_BNO055()
 		BNO055_getStatusInfo();
 		BNO055_getRevInfo();
 		Serial.println("---------------------------------------");
-		//BNO055_GetID_from_BNO055();
+		// BNO055_GetID_from_BNO055();
 
 		Serial.println(String(millis()) + " END Init BNO055.");
 		delay(250);
@@ -630,13 +633,13 @@ void Setup_BNO055()
 	Serial.println(String(millis()) + " Setup_BNO055");
 	set_TCA9548A(multi_line_BNO2); // Выбор линии с датчиком с которым будем работать
 	Init_BNO055();
-	//Calibrovka_BNO055(); // Калибруем если первый раз и нет еще калибровки для этого датчика.
+	// Calibrovka_BNO055(); // Калибруем если первый раз и нет еще калибровки для этого датчика.
 	BNO055_SetOffset_toBNO055(BNO055_Offset_Array_dafault2); // Установка нужного массива с калибровочными данными
 	// Запуск датчика в заданном режиме
 	Serial.println(" ================== BNO055_Start =================");
 	BNO055_SetMode(eIMU); // Режим работы где он все сам считает	  eIMU
 	delay(500);
-	BNO055_readData(); // Разовое считывание данных 
+	BNO055_readData(); // Разовое считывание данных
 	Serial.println(" ================== Read Start Angle =================");
 	Serial.print(" BNO055_EulerAngles.x = ");
 	Serial.print(BNO055_EulerAngles.x);
@@ -645,5 +648,5 @@ void Setup_BNO055()
 	Serial.print(" BNO055_EulerAngles.z = ");
 	Serial.print(BNO055_EulerAngles.z);
 	Serial.println(" ================== BNO055_End =================");
-	// delay(999999999); 
+	// delay(999999999);
 }

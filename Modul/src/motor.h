@@ -2,9 +2,9 @@
 #define MOTOR_H
 
 //---------------------------------------------------------------------------------------
-#define SPEED 1   // Скорость на всех моторах одинаковая максимально возможная, что-бы перемещаться как можно быстрее оборотов за секунду rps
+#define SPEED 1     // Скорость на всех моторах одинаковая максимально возможная, что-бы перемещаться как можно быстрее оборотов за секунду rps
 #define MICROSTEP 8 // Микрошаг на драйверах
-#define REDUKTOR 4 // Параметры Редуктора
+#define REDUKTOR 4  // Параметры Редуктора
 //---------------------------------------------------------------------------------------
 #define PIN_Motor_En 32 //
 //---------------------------------------------------------------------------------------
@@ -25,10 +25,10 @@
 // #define TRANSFORM_M2 45  //
 // #define TRANSFORM_M3 135  //
 //---------------------------------------------------------------------------------------
-#define PIN_MICRIC_M0 39  //
-#define PIN_MICRIC_M1 36  //
-#define PIN_MICRIC_M2 34  //
-#define PIN_MICRIC_M3 35  //
+#define PIN_MICRIC_M0 39 //
+#define PIN_MICRIC_M1 36 //
+#define PIN_MICRIC_M2 34 //
+#define PIN_MICRIC_M3 35 //
 
 //************************ ОБЬЯВЛЕНИЕ ФУНКЦИЙ *******************************************
 void IRAM_ATTR onTimer1();
@@ -45,11 +45,10 @@ void disableMotor();                           // Отключение мото�
 const float sector = 360.0 / 200 / REDUKTOR / MICROSTEP; // Столько градусов приходится на 1 импульс
 
 int32_t countPulse = 0; // Счетчик импульсов
-//bool flagPrintInterrupt = false; // Флаг в режиме колибровки включать печать срабатывания прерывния
+// bool flagPrintInterrupt = false; // Флаг в режиме колибровки включать печать срабатывания прерывния
 
-//bool flag_command_stop_motor = false; // Флаг что команда остановиться была и нужно отследить время чтобы их отключить
-//uint64_t time_command_stop_motor = 0; // Время в которое дали команду остановиться моторам
-
+// bool flag_command_stop_motor = false; // Флаг что команда остановиться была и нужно отследить время чтобы их отключить
+// uint64_t time_command_stop_motor = 0; // Время в которое дали команду остановиться моторам
 
 int microStep;   // Число микрошагов
 int timeingStep; // Число тактов для таймера через которое нужно дать новый имульс мотору
@@ -93,44 +92,33 @@ void initMotor()
     digitalWrite(PIN_M2_Dir, 0); //  Подтяжка чтобы не в воздухе сделал резистором на плате что-бы при перезагрузке не дергалось
     motor[2].dir_pin = PIN_M2_Dir;
 
-    pinMode(PIN_M3_Step, OUTPUT); // Устанавливаем пины для M3 мотора 
+    pinMode(PIN_M3_Step, OUTPUT); // Устанавливаем пины для M3 мотора
     digitalWrite(PIN_M3_Step, 0); // Подтяжка чтобы не в воздухе
     motor[3].step_pin = PIN_M3_Step;
     pinMode(PIN_M3_Dir, OUTPUT);
     digitalWrite(PIN_M3_Dir, 0); //  Подтяжка чтобы не в воздухе сделал резистором на плате что-бы при перезагрузке не дергалось
     motor[3].dir_pin = PIN_M3_Dir;
-
-    pinMode(PIN_MICRIC_M0, INPUT_PULLUP); // 
-    pinMode(PIN_MICRIC_M1, INPUT_PULLUP); // 
-    pinMode(PIN_MICRIC_M2, INPUT_PULLUP); // 
-    pinMode(PIN_MICRIC_M3, INPUT_PULLUP); // 
-
-    motor[0].micric_pin = PIN_MICRIC_M0;
-    motor[1].micric_pin = PIN_MICRIC_M1;
-    motor[2].micric_pin = PIN_MICRIC_M2;
-    motor[3].micric_pin = PIN_MICRIC_M3;
-
-    motor[0].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
-    motor[1].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
-    motor[2].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
-    motor[3].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
 }
 // Прерывания на концевиках. ИСПРАВЛЯТЬ ВРУЧНУЮ под реальные пины на плате!!!!
 void IRAM_ATTR ISR34()
 {
     motor[2].status = false;
+    //printf("34\n");
 }
 void IRAM_ATTR ISR35()
 {
     motor[3].status = false;
+    //printf("35\n");
 }
 void IRAM_ATTR ISR36()
 {
     motor[1].status = false;
+    //printf("36\n");
 }
 void IRAM_ATTR ISR39()
 {
     motor[0].status = false;
+    //printf("39\n");
 }
 
 // Функция исполняемая по прерыванию по таймеру 1 на все МОТОРЫ
@@ -181,13 +169,13 @@ float getAngle(int32_t _pulse)
 void setMotorAngle(int32_t num, float _angle)
 {
     if (_angle < 0)
-        _angle = 0;                            // Защита от отрицательного градуса угла
+        _angle = 0; // Защита от отрицательного градуса угла
     if (_angle > 180)
-        _angle = 180;                          // Защита от отклонения больше предела 
-    motor[num].destination = getPulse(_angle); // Получаем в какую позицию должен встать мотор наиболее близкую к требуемому градусу
+        _angle = 180;                                  // Защита от отклонения больше предела
+    motor[num].destination = getPulse(_angle);         // Получаем в какую позицию должен встать мотор наиболее близкую к требуемому градусу
     if (motor[num].position == motor[num].destination) // Если текущая позиция и так тавна цели то ничего не делаем и выходим из функции
         return;
-    digitalWrite(PIN_Motor_En, 0);             // Включаем драйвера
+    digitalWrite(PIN_Motor_En, 0); // Включаем драйвера
     printf("position= %i ", motor[num].position);
     printf("destination= %i \n", motor[num].destination);
     if (motor[num].position < motor[num].destination) // Если цель бпльше то вращение по часовой 1
@@ -200,7 +188,7 @@ void setMotorAngle(int32_t num, float _angle)
         digitalWrite(motor[num].dir_pin, 0);
         motor[num].dir = 0;
     }
-    //printf("dir_pin motor %i = %i \n", num, motor[num].dir_pin);
+    // printf("dir_pin motor %i = %i \n", num, motor[num].dir_pin);
     motor[num].status = 1; // Включаем сам мотор
 }
 
@@ -223,14 +211,15 @@ void setSpeedMotor(float _speed)
 void testMotorRun()
 {
     digitalWrite(PIN_Motor_En, 0); // Включаем драйвера
-    statusTestMotor = 1; // Статус теста мотора Включаем что тест
+    statusTestMotor = 1;           // Статус теста мотора Включаем что тест
 
     motor[0].status = 1;
     motor[1].status = 1;
     motor[2].status = 1;
     motor[3].status = 1;
     Serial.println("testMotorRun...");
-    while (1);
+    while (1)
+        ;
 }
 // Запуск моторов на тест
 void testMotorStop()
@@ -253,19 +242,29 @@ void initTimer_1()
     timerAlarmEnable(timer1);                      // Запускаем таймер
 }
 
-
-// Инициализация прерывния на концевиках
+// Инициализация прерываний на концевиках
 void initInterrupt()
 {
     Serial.println(String(millis()) + " initInterrupt ...");
-    pinMode(34, INPUT);
-    attachInterrupt(34, ISR34, FALLING);
-    pinMode(35, INPUT);
-    attachInterrupt(35, ISR35, FALLING);
-    pinMode(36, INPUT);
-    attachInterrupt(36, ISR36, FALLING);
-    pinMode(39, INPUT);
-    attachInterrupt(39, ISR39, FALLING);
+    pinMode(PIN_MICRIC_M0, INPUT_PULLUP); //
+    pinMode(PIN_MICRIC_M1, INPUT_PULLUP); //
+    pinMode(PIN_MICRIC_M2, INPUT_PULLUP); //
+    pinMode(PIN_MICRIC_M3, INPUT_PULLUP); //
+
+    attachInterrupt(PIN_MICRIC_M2, ISR34, FALLING);
+    attachInterrupt(PIN_MICRIC_M3, ISR35, FALLING);
+    attachInterrupt(PIN_MICRIC_M1, ISR36, FALLING);
+    attachInterrupt(PIN_MICRIC_M0, ISR39, FALLING);
+
+    motor[0].micric_pin = PIN_MICRIC_M0;
+    motor[1].micric_pin = PIN_MICRIC_M1;
+    motor[2].micric_pin = PIN_MICRIC_M2;
+    motor[3].micric_pin = PIN_MICRIC_M3;
+
+    motor[0].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
+    motor[1].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
+    motor[2].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
+    motor[3].status = false; // Флаг ставим что мотор не работает, просто запрещаем делать импульсы
 }
 
 // Отключение моторов в простое
@@ -283,7 +282,7 @@ void disableMotor()
 // Функция установки в ноль всех моторов
 void setZeroMotor()
 {
-    Serial.println(String(micros()) + " setZeroMotor ...");
+    Serial.println(String(micros()) + " Start setZeroMotor ...");
     for (int i = 0; i < 4; i++) // Сначала отводим немного на случай если уже в нуле
     {
         setMotorAngle(i, 15);
@@ -299,6 +298,20 @@ void setZeroMotor()
     {
         motor[i].position = 0;    // Устанавливаем начальную позицию
         motor[i].destination = 0; // Устанавливаем начальную позицию
+    }
+    Serial.println(String(micros()) + " End setZeroMotor ...");
+}
+
+void testMicric()
+{
+    while (1)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            printf("mic= %i ", digitalRead(motor[i].micric_pin));
+        }
+        printf("\n");
+        delay(250);
     }
 }
 
