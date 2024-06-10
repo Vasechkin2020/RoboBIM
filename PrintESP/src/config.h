@@ -2,9 +2,9 @@
 #define CONFIG_H
 
 // Контакты для светодиодов:
-const int PIN_LED_RED = 14; //Для красного светодиода перепаял
+const int PIN_LED_RED = 33; //Для красного светодиода перепаял
 //Нельзя использовать нулевой пин Не работает пин. При инициализации SPI_slave функция его занимает и дает всегда половину напряжения и он не реагирует на команды.
-const int PIN_LED_BLUE = 12;
+const int PIN_LED_BLUE = 32;
 const int PIN_ANALIZ = 4;
 
 float filtr_My(float old_, float new_, float ves_new_); // Просто предолбявление функции. Реализация дальше. что-бы компилятор не ругался
@@ -45,7 +45,6 @@ struct Struct_RPY
 struct Struct_Iot2Data
 {
   uint32_t id = 0;            // id команды
-  DateTime timeIot;       // Дата время с датчика]
   uint32_t cheksum = 0;       // Контрольная сумма данных в структуре
 };
 

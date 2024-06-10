@@ -50,9 +50,9 @@ void Led_Blink(int led_, unsigned long time_)
 // Отработка пришедших команд. Изменение скорости, траектории и прочее
 void executeDataReceive()
 {
-  static int command_pred = 0; // Переменная для запоминания предыдущей команды
+  static int mode_pred = 0; // Переменная для запоминания предыдущей команды
   // Команда 0
-  if (Data2Modul_receive.controlMotor.command == 0) // Если идет команда  0
+  if (Data2Modul_receive.controlMotor.mode == 0) // Если идет команда  0
   {
     // for (int i = 0; i < 4; i++)
     // {
@@ -63,7 +63,7 @@ void executeDataReceive()
   // printf("com = %i \n", Data2Modul_receive.command);
 
   // Команда УПРАВЛЕНИЯ УГЛАМИ
-  if (Data2Modul_receive.controlMotor.command == 1) // Если пришла команда 2 Управления
+  if (Data2Modul_receive.controlMotor.mode == 1) // Если пришла команда 2 Управления
   {
     for (int i = 0; i < 4; i++)
     {
@@ -75,12 +75,12 @@ void executeDataReceive()
   }
 
   // Команда КОЛИБРОВКИ И УСТАНОВКИ В 0
-  if (Data2Modul_receive.controlMotor.command == 9 && Data2Modul_receive.controlMotor.command != command_pred) // Если пришла команда 9 Колибровки и предыдущая была другая
+  if (Data2Modul_receive.controlMotor.mode == 9 && Data2Modul_receive.controlMotor.mode != mode_pred) // Если пришла команда 9 Колибровки и предыдущая была другая
   {
     setZeroMotor(); // Установка в ноль
   }
 
-  command_pred = Data2Modul_receive.controlMotor.command; // Запоминаяем команду
+  mode_pred = Data2Modul_receive.controlMotor.mode; // Запоминаяем команду
   //     // printf(" Data2Modul.radius= %f ", Data2Modul_receive.radius);
 }
 
@@ -138,6 +138,7 @@ void collect_Data_for_Send()
 
     Modul2Data_send.laser[i].status = laser[i].status;     // Считываем статаус дальномера
     Modul2Data_send.laser[i].distance = laser[i].distance; // Считываем измерение растояния
+    Modul2Data_send.laser[i].signalQuality = laser[i].signalQuality;   // Считываем угол в котором произмели измерение
     Modul2Data_send.laser[i].angle = laser[i].angle;       // Считываем угол в котором произмели измерение
 
     Modul2Data_send.micric[i] = digitalRead(motor[i].micric_pin); //
@@ -191,7 +192,7 @@ void laserLoop()
   if (flagBroadcastRequest) // Если нет измерения то меряем
   {
     flagBroadcastRequest = false;            // смена флага
-    sk60plus[0].getBroadcastSingleMeasure(); // Щироковещательный запрос на измерние
+    sk60plus[0].getBroadcastSingleMeasure(); // Щироковещательный запрос на измерение
     timeBroadcastRequest = millis();         // Запоминаем когда сделали запрос
     i = 0;                                   // Номер лазера с которым работаем
     printf("--- \n");

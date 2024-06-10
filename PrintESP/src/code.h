@@ -119,14 +119,6 @@ void collect_Data()
 {
   Iot2Data_send.id++;
 
-  Iot2Data_send.timeIot.year = g_time_Ds3231.year;
-	Iot2Data_send.timeIot.month = g_time_Ds3231.month;
-	Iot2Data_send.timeIot.date = g_time_Ds3231.date;
-	Iot2Data_send.timeIot.day = g_time_Ds3231.day;
-	Iot2Data_send.timeIot.hour = g_time_Ds3231.hour;
-	Iot2Data_send.timeIot.minute = g_time_Ds3231.minute;
-	Iot2Data_send.timeIot.second = g_time_Ds3231.second;
-
   Iot2Data_send.cheksum = measureCheksum(Iot2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
 
   // Serial.print(" Iot2Data_send.cheksum = ");
@@ -136,24 +128,6 @@ void printBody()
 {
 
   printf(" id= %i \n", Iot2Data_send.id);
-  // printf(" odom_L= %f \n", Iot2Data_send.odom_L);
-  // printf(" odom_R= %f \n", Iot2Data_send.odom_R);
-  // printf(" speed_L= %f \n", Iot2Data_send.speed_L);
-  // printf(" speed_R= %f \n", Iot2Data_send.speed_R);
-  // printf(" distance_lazer_L= %f \n", Iot2Data_send.distance_lazer_L);
-  // printf(" distance_lazer_R= %f \n", Iot2Data_send.distance_lazer_R);
-  // printf(" distance_uzi= %f \n", Iot2Data_send.distance_uzi);
-  // printf(" temperature= %f \n", Iot2Data_send.bme.temperature);
-  // printf(" pressure= %f \n", Iot2Data_send.bme.pressure);
-  // printf(" humidity= %f \n", Iot2Data_send.bme.humidity);
-  // printf(" loc= %f \n", Iot2Data_send.bme.loc);
-  // printf(" voltage= %f \n", Iot2Data_send.ina.voltage);
-  // printf(" current= %f \n", Iot2Data_send.ina.current);
-  // printf(" capacity_percent= %f \n", Iot2Data_send.ina.capacity_percent);
-  // printf(" capacity_real= %f \n", Iot2Data_send.ina.capacity_real);
-  // printf(" gaz_volt= %f \n", gaz_volt);
-  // printf(" gaz_data= %f \n", Iot2Data_send.gaz_data);
-  // printf(" lux = %f \n", Iot2Data_send.lux);
   printf(" Send cheksum= %i  \n --- \n", Iot2Data_send.cheksum);
 }
 

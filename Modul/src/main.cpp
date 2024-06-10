@@ -104,7 +104,7 @@ void loop()
 {
 // digitalWrite(PIN_ANALIZ, 1);
 #ifdef LASER
-// laserLoop(); // Обработка датчиков так что-бы не задерживать основной цикл и делать все короткими операциями
+    laserLoop(); // Обработка датчиков так что-бы не задерживать основной цикл и делать все короткими операциями
 #endif
     //----------------------------- 50 миллисекунд --------------------------------------
     if (flag_timer_50millisec)
@@ -204,7 +204,8 @@ void loop()
         printf(" %.3f  \n", millis() / 1000.0); // Печать времени что программа не зависла, закомментировать в реальной работе
         for (int i = 0; i < 4; i++)
         {
-            // printf(" motor %i position %i destination %i status %i \n", i, motor[i].position, motor[i].destination, motor[i].status);
+            printf(" motor %i position %i destination %i status %i \n", i, motor[i].position, motor[i].destination, motor[i].status);
+            printf(" laser %i _distance %i _signalQuality %i \n", i, sk60plus[i]._distance, sk60plus[i]._signalQuality);
         }
 
         // printBody();
