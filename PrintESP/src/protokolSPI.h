@@ -5,6 +5,7 @@
 #include "driver/spi_slave.h"
 
 esp_err_t ret;
+spi_transaction_t t;
 
 //************** MASTER ********************************
 #define TX_HOST HSPI_HOST
@@ -32,11 +33,11 @@ void initSPI_master()
     };
 
     spi_device_interface_config_t devcfg = {
-        .mode = 0,                 // SPI mode 0
+        .mode = 0, // SPI mode 0
         //.duty_cycle_pos = 128, //50% duty cycle
         .clock_speed_hz = 10 * 1000 * 1000, // Clock out at 4 MHz
-        .spics_io_num = PIN_NUM_CS_HSPI,   // CS pin
-        .queue_size = 7,                   // We want to be able to queue 7 transactions at a time
+        .spics_io_num = PIN_NUM_CS_HSPI,    // CS pin
+        .queue_size = 7,                    // We want to be able to queue 7 transactions at a time
     };
 
     // Инициализация SPI шины
@@ -59,7 +60,6 @@ void initSPI_master()
 #define PIN_NUM_MISO 19
 #define PIN_NUM_MOSI 23
 
-
 spi_slave_transaction_t rx_start_transaction;
 spi_slave_transaction_t *rx_end_transaction;
 
@@ -70,7 +70,7 @@ int obmen_bed_crc = 0; // Подсчет успешных и нет обмено
 volatile bool flag_data = false;           // Флаг что данные передались
 volatile bool flag_goog_data_time = false; // Флаг что данные пришли через правильное время
 
-#define SIZE_BUFF 160 // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
+#define SIZE_BUFF 64 // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
 // WORD_ALIGNED_ATTR unsigned char buf_slave_receive[SIZE_BUFF]; // Буфер в 1 kByte
 WORD_ALIGNED_ATTR unsigned char buf_slave_receive[SIZE_BUFF]; // Буфер в  Byte
 
@@ -146,7 +146,7 @@ void spi_slave_queue_Send()
     memset(buf_slave_receive, 0, sizeof(buf_slave_receive));
     rx_start_transaction.length = SIZE_BUFF * 8 + 32;   // Колличество бит в транзакции с запасом
     rx_start_transaction.rx_buffer = buf_slave_receive; // Буфер памяти куда получим структуру
-    rx_start_transaction.tx_buffer = &Iot2Data_send;    // Ссылка на структуру которую отправляем
+    rx_start_transaction.tx_buffer = &Print2Data_send;    // Ссылка на структуру которую отправляем
     ret = spi_slave_queue_trans(RX_HOST, &rx_start_transaction, portMAX_DELAY);
     assert(ret == ESP_OK);
 }
@@ -159,15 +159,24 @@ void processing_Data()
 
     if (flag_goog_data_time) // Если прерывание было вовремя, а не случайное
     {
-        Struct_Data2Iot *copy_buf_slave_receive = (Struct_Data2Iot *)buf_slave_receive; // Создаем переменную в которую пишем адрес буфера в нужном формате
-        Data2Iot_receive = *copy_buf_slave_receive;                                     // Копируем из этой перемнной данные в мою структуру
-        uint32_t cheksum_receive = measureCheksum(Data2Iot_receive);                    // Считаем контрольную сумму пришедшей структуры
+        SData2Print *copy_buf_slave_receive = (SData2Print *)buf_slave_receive; // Создаем переменную в которую пишем адрес буфера в нужном формате
+        Data2Print_receive = *copy_buf_slave_receive;                                     // Копируем из этой перемнной данные в мою структуру
+        uint32_t cheksum_receive = measureCheksum(Data2Print_receive);                    // Считаем контрольную сумму пришедшей структуры
 
-        if (cheksum_receive != Data2Iot_receive.cheksum || Data2Iot_receive.cheksum == 0)
+        if (cheksum_receive != Data2Print_receive.cheksum || Data2Print_receive.cheksum == 0)
         {
             obmen_bed_crc++;
         }
     }
+}
+
+void sendSPI(uint8_t *arrSend_, uint8_t  size_)
+{
+    memset(&t, 0, sizeof(t));      // Zero out the transaction
+    t.length = size_ * 8; // Length is in bits (48 bytes * 8 bits/byte)
+    t.tx_buffer = arrSend_;          // Data
+    ret = spi_device_transmit(handle, &t); // Transmit! // Начало передачи данных по SPI
+    assert(ret == ESP_OK);                 // Check if transmission was successful
 }
 
 #endif

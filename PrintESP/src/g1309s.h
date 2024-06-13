@@ -12,11 +12,12 @@ public:
     CG1309s(/* args */);
     ~CG1309s();
     void printLine(uint8_t *line_, uint8_t size_);         // Печать массива с данными
-    void clearLine(uint8_t *line_, uint8_t size_);         // Обнуление массива с данными
-    void line10to150(uint8_t *line10_, uint8_t *line150_); // Метод преобразования из массива 10 элементов в 150 элементов
+    //void line10to150(uint8_t *line15_, uint8_t *line150_); // Метод преобразования из массива 10 элементов в 150 элементов
 
-    void line150toCode24(uint8_t *line150_, uint16_t *code24_); // Метод преобразования из массива 150 элементов в 11 кодовых значений в 2 байта
-    void code24toCode48(uint16_t *code24_, uint8_t *code48_);    // Метод преобразования из массива 24 элементов в массив 48 элементов по 1 байту для передачи по SPI в правильном порядке
+    //void line150toCode24(uint8_t *line150_, uint16_t *code24_); // Метод преобразования из массива 150 элементов в 11 кодовых значений в 2 байта
+
+    void line15toCode24(uint8_t *line15_, uint16_t *code24_); // Метод преобразования из массива 10 элементов в 11 кодовых значений в 2 байта
+    void code24toCode48(uint16_t *code24_, uint8_t *code48_);   // Метод преобразования из массива 24 элементов в массив 48 элементов по 1 байту для передачи по SPI в правильном порядке
 };
 
 CG1309s::CG1309s(/* args */)
@@ -27,16 +28,16 @@ CG1309s::~CG1309s()
 {
 }
 
-// Метод преобразования из массива 10 элементов в 150 элементов
-void CG1309s::line10to150(uint8_t *line10_, uint8_t *line150_)
-{
-    int count = 0;
-    for (int i = 0; i < 150; i++)
-    {
-        count = i / 15; // Тут только целое число, дробный остаток отбратывается
-        line150_[i] = line10_[count];
-    }
-}
+// // Метод преобразования из массива 10 элементов в 150 элементов
+// void CG1309s::line10to150(uint8_t *line15_, uint8_t *line150_)
+// {
+//     int count = 0;
+//     for (int i = 0; i < 150; i++)
+//     {
+//         count = i / 15; // Тут только целое число, дробный остаток отбратывается
+//         line150_[i] = line15_[count];
+//     }
+// }
 // Печать массива с данными
 void CG1309s::printLine(uint8_t *line_, uint8_t size_)
 {
@@ -47,17 +48,17 @@ void CG1309s::printLine(uint8_t *line_, uint8_t size_)
     }
     printf("\n");
 }
-// Очистка массива с данными
-void CG1309s::clearLine(uint8_t *line_, uint8_t size_)
-{
-    for (int i = 0; i < size_; i++)
-    {
-        line_[i] = 0;
-    }
-}
 // Метод преобразования из массива 150 элементов в 11 кодовых значений в 2 байта
-void CG1309s::line150toCode24(uint8_t *line150_, uint16_t *code24_)
+void CG1309s::line15toCode24(uint8_t *line15_, uint16_t *code24_)
 {
+    int count = 0;
+    uint8_t line150[150];
+    for (int i = 0; i < 150; i++)
+    {
+        count = i / 10; // Тут только целое число, дробный остаток отбратывается
+        line150[i] = line15_[count];
+    }
+
     for (int i = 0; i < 24; i++) // Очищаем массив нулями
     {
         code24_[i] = 0;
@@ -153,7 +154,7 @@ void CG1309s::line150toCode24(uint8_t *line150_, uint16_t *code24_)
             gate = 8;
             break;
         }
-        if (line150_[i] == 1) // Если есть пиксель то меняем нужный бит в кодовом значении
+        if (line150[i] == 1) // Если есть пиксель то меняем нужный бит в кодовом значении
         {
             // printf("level %i numPixel %i bitNum %i gate %i \n", level, numPixel, bitNum, gate);
             //  uint16_t data = 0;

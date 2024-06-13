@@ -5,10 +5,6 @@
 #include <Wire.h>
 #include <SPI.h>
 
-// uninitialised pointers to SPI objects
-// SPIClass *hspi = NULL;
-// static const int spiClk = 10000000; // 1 MHz
-
 #include "config.h"
 
 #include "g1309s.h" // Класс для кодирования картриджа
@@ -18,12 +14,6 @@ CG1309s kartr;      // Обьект класса картридж
 #include "protokolSPI.h"
 
 #include "code.h"
-
-// uint8_t line10[10]{1, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Массив изображения в 1 линию из 10 точек сверху вниз. 0 сверху - 9 внизу
-uint8_t line10[10]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // Массив изображения в 1 линию из 10 точек сверху вниз. 0 сверху - 9 внизу
-uint8_t line150[150];                             // Массив изображения в 1 линию из 150 точек сверху вниз. То что кодируем
-uint16_t code24[24];                              // Массив двухбайтных элементов в которых битами отмечены пикселы которые надо напечатать.
-uint8_t code48[48];                               // Массив однобайтный в формате отправки по SPI
 
 void setup()
 {
@@ -48,7 +38,6 @@ void setup()
     // scanI2C();
     delay(1000);
 
-
     initSPI_master(); // Инициализация SPI master для отправки данных
 
 #ifdef SPI_protocol_def
@@ -58,12 +47,18 @@ void setup()
     spi_slave_queue_Send(); // Configure receiver Первый раз закладываем данные чтобы как только мастер к нам обратиться было чем ответить
 #endif
 
-    kartr.printLine(line10, 10);
+    // kartr.printLine(line10, 10);
     // Serial.println(String(micros()) + "AAAA " + line10[0]);
     // printf("ppppp");
-    kartr.line10to150(line10, line150);
-    kartr.printLine(line150, 150);
-    kartr.line150toCode24(line150, code24);
+    // kartr.line10to150(line10, line150);
+    // kartr.printLine(line150, 150);
+    kartr.line15toCode24(line15_1, code24);
+    kartr.code24toCode48(code24, code48);
+
+    kartr.line15toCode24(line15_0, code24null);
+    kartr.code24toCode48(code24null, code48null);
+
+    kartr.code24toCode48(code24free, code48free);
 
     Serial.println(" === ");
     for (int i = 0; i < 24; i++)
@@ -71,11 +66,10 @@ void setup()
         Serial.print(" i= ");
         Serial.print(i);
         Serial.print(" = ");
-        Serial.println(code24[i], HEX);
+        Serial.println(code24free[i], HEX);
     }
     // u_int8_t *code48 = (uint8_t *)code24; // Создаем переменную в которую пишем адрес буфера в нужном формате
     //                                       // code48Send = *code48;                // Копируем из этой перемнной данные в мою структуру
-    kartr.code24toCode48(code24, code48);
 
     Serial.println(" =code48= ");
     for (int i = 0; i < 48; i++)
@@ -83,7 +77,7 @@ void setup()
         Serial.print(" i= ");
         Serial.print(i);
         Serial.print(" = ");
-        Serial.println(code48[i], HEX);
+        Serial.println(code48free[i], HEX);
     }
 
     offLed(); // Отключение светодиодов
@@ -106,15 +100,6 @@ void loop()
     {
         flag_timer_10millisec = false;
 
-        spi_transaction_t t;
-        memset(&t, 0, sizeof(t)); // Zero out the transaction
-        t.length = sizeof(code48) * 8;    // Length is in bits (48 bytes * 8 bits/byte)
-        t.tx_buffer = code48; // Data
-
-        // Начало передачи данных по SPI
-        ret = spi_device_transmit(handle, &t); // Transmit!
-        assert(ret == ESP_OK);              // Check if transmission was successful
-
         // digitalWrite(hspi->pinSS(), LOW); // pull SS slow to prep other end for transfer
         // hspi->beginTransaction(SPISettings(spiClk, MSBFIRST, SPI_MODE3));
 
@@ -136,8 +121,8 @@ void loop()
         processing_Data(); // Обработка пришедших данных после состоявшегося обмена
         //  executeCommand();  // Выполнение пришедших команд
 
-        printf(" Receive id= %i cheksum= %i All obmen= %i bed_time= %i bed_crc= %i \n ", Data2Iot_receive.id, Data2Iot_receive.cheksum, obmen_all, obmen_bed_time, obmen_bed_crc);
-        // printf(" command= %i radius= %f speed= %f motor_video_angle= %f \n", Data2Iot_receive.command_body, Data2Iot_receive.radius, Data2Iot_receive.speed, Data2Iot_receive.motor_video_angle);
+        printf(" Receive id= %i cheksum= %i All obmen= %i bed_time= %i bed_crc= %i \n ", Data2Print_receive.id, Data2Print_receive.cheksum, obmen_all, obmen_bed_time, obmen_bed_crc);
+        // printf(" command= %i radius= %f speed= %f motor_video_angle= %f \n", Data2Print_receive.command_body, Data2Print_receive.radius, Data2Print_receive.speed, Data2Print_receive.motor_video_angle);
         // printf(" \n");
 
 #ifdef SPI_protocol_def
@@ -155,6 +140,19 @@ void loop()
     if (flag_timer_1sec) // Вызывается каждую секунду
     {
         flag_timer_1sec = false;
+
+        printLine(line15_1,36);
+        printLine(line15_0,36);
+        printLine(line15_4,500);
+        printLine(line15_1,36);
+        printLine(line15_0,36);
+        printLine(line15_2,36);
+        printLine(line15_3,36);
+        printLine(line15_2,36);
+        printLine(line15_0,36);
+        printLine(line15_1,36);
+
+        sendSPI(code48free, 48); // Какой массив отправлять и размер массива                // Check if transmission was successful
 
         printf(" %f \n", millis() / 1000.0);
     }

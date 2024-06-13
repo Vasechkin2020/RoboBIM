@@ -7,7 +7,7 @@ float filtr_My(float old_, float new_, float ves_new_)
   return (old_ * (1.0 - ves_new_)) + (new_ * ves_new_);
 }
 
-//Функция записи строки в мой массив символов и обрезание строки
+// Функция записи строки в мой массив символов и обрезание строки
 void stroka2Massiv(const char *stroka_, char *massiv_, byte count_)
 {
   for (byte i = 0; i < count_; i++)
@@ -21,7 +21,7 @@ void stroka2Massiv(const char *stroka_, char *massiv_, byte count_)
 
 void initLed()
 {
-  pinMode(PIN_LED_RED, OUTPUT); //Не работает пин. При инициализации SPI_slave функция его занимает и дает всегда половину напряжения и он не реагирует на команды.
+  pinMode(PIN_LED_RED, OUTPUT); // Не работает пин. При инициализации SPI_slave функция его занимает и дает всегда половину напряжения и он не реагирует на команды.
   pinMode(PIN_LED_BLUE, OUTPUT);
   digitalWrite(PIN_LED_RED, 1);  // Запустился SetUp
   digitalWrite(PIN_LED_BLUE, 1); // Запустился SetUp
@@ -32,7 +32,7 @@ void offLed()
   digitalWrite(PIN_LED_RED, 0);  // Запустился SetUp
   digitalWrite(PIN_LED_BLUE, 0); // Запустился SetUp
 }
-//Функция мигания светодиодом в основном цикле
+// Функция мигания светодиодом в основном цикле
 void Led_Blink(int led_, unsigned long time_)
 {
   static unsigned long led_time = 0;
@@ -52,21 +52,20 @@ void Led_Blink(int led_, unsigned long time_)
 void executeCommand()
 {
   static int command_pred = 0; // Переменная для запоминания предыдущей команды
-  // if (Data2Iot_receive.command_body == 0 && Data2Iot_receive.command_body != command_pred) // Если пришла команда 0 и предыдущая была другая
+  // if (Data2Print_receive.command_body == 0 && Data2Print_receive.command_body != command_pred) // Если пришла команда 0 и предыдущая была другая
   // {
   //   // Serial.println("commanda  STOP...");
   //   // stopMotor(); //все останавливаем
   // }
-  // if (Data2Iot_receive.command_body == 1) // Если командв двигаться то азадем движение на 1 секунду
+  // if (Data2Print_receive.command_body == 1) // Если командв двигаться то азадем движение на 1 секунду
   // {
-  //   // setSpeed_time(Data2Iot_receive.speed, Data2Iot_receive.radius, 1000);
+  //   // setSpeed_time(Data2Print_receive.speed, Data2Print_receive.radius, 1000);
   //   // setSpeed_time(0.2, 0.2, 1000);
   // }
-  // command_pred = Data2Iot_receive.command_body; // Запоминаяем команду
+  // command_pred = Data2Print_receive.command_body; // Запоминаяем команду
 }
 
-
-//Функция исполняемая по прерыванию по таймеру 0
+// Функция исполняемая по прерыванию по таймеру 0
 void IRAM_ATTR onTimer() // Обработчик прерывания таймера 0 по совпадению A 	1 раз в 1 милисекунду
 {
   // portENTER_CRITICAL_ISR(&timerMux);
@@ -104,7 +103,7 @@ void IRAM_ATTR onTimer() // Обработчик прерывания тайме
   }
 }
 
-//Инициализация таймера 0. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
+// Инициализация таймера 0. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
 void initTimer_0()
 {
   printf(" Starrt initTimer_0 ... \n");
@@ -117,9 +116,9 @@ void initTimer_0()
 // Собираем нужные данные и пишем в структуру на отправку
 void collect_Data()
 {
-  Iot2Data_send.id++;
+  Print2Data_send.id++;
 
-  Iot2Data_send.cheksum = measureCheksum(Iot2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
+  Print2Data_send.cheksum = measureCheksum(Print2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
 
   // Serial.print(" Iot2Data_send.cheksum = ");
   // Serial.println(Iot2Data_send.cheksum);
@@ -127,8 +126,30 @@ void collect_Data()
 void printBody()
 {
 
-  printf(" id= %i \n", Iot2Data_send.id);
-  printf(" Send cheksum= %i  \n --- \n", Iot2Data_send.cheksum);
+  printf(" id= %i \n", Print2Data_send.id);
+  printf(" Send cheksum= %i  \n --- \n", Print2Data_send.cheksum);
 }
+// Печать какой строки и сколько раз
+void printLine(uint8_t *line_, uint16_t count_)
+{
 
+  kartr.line15toCode24(line_, code24);
+  kartr.code24toCode48(code24, code48);
+  for (int i = 0; i < count_; i++)
+  {
+    sendSPI(code48, 48); // Какой массив отправлять и размер массива                // Check if transmission was successful
+    delayMicroseconds(250);
+  }
+
+  // memset(&t, 0, sizeof(t));      // Zero out the transaction
+  // t.length = sizeof(code48) * 8; // Length is in bits (48 bytes * 8 bits/byte)
+  // t.tx_buffer = code48;          // Data
+
+  // // Начало передачи данных по SPI
+  // ret = spi_device_transmit(handle, &t); // Transmit!
+  // assert(ret == ESP_OK);                 // Check if transmission was successful
+
+  // sendSPI(code48,sizeof(code48)); // Какой массив отправлять и размер массива
+  // delayMicroseconds(250);
+}
 #endif
