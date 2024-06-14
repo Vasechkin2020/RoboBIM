@@ -117,6 +117,9 @@ void initTimer_0()
 void collect_Data()
 {
   Print2Data_send.id++;
+  
+  Print2Data_send.spi.all = obmen_all;
+  Print2Data_send.spi.bed = obmen_bed_crc;// + obmen_bed_time;
 
   Print2Data_send.cheksum = measureCheksum(Print2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
 

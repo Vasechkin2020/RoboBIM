@@ -17,12 +17,12 @@ CG1309s kartr;      // Обьект класса картридж
 
 void setup()
 {
-    delay(2000);
+    // delay(20000000);
     initLed(); // Начальная инициализация и настройка светодиодов
-    pinMode(PIN_ANALIZ, OUTPUT);
+    // pinMode(PIN_ANALIZ, OUTPUT);
 
     Serial.begin(115200);
-    Serial2.begin(115200);
+    // Serial2.begin(115200);
     Serial.println(" ");
     Serial.println(String(micros()) + " Start program ESP32_Body ...");
 
@@ -36,9 +36,9 @@ void setup()
     // Wire.setClock(400000);
     // Serial.println(String(micros()) + " Start scan  I2C ...");
     // scanI2C();
-    delay(1000);
+    delay(100);
 
-    initSPI_master(); // Инициализация SPI master для отправки данных
+    // initSPI_master(); // Инициализация SPI master для отправки данных
 
 #ifdef SPI_protocol_def
     printf("initSPI_slave \n");
@@ -52,6 +52,7 @@ void setup()
     // printf("ppppp");
     // kartr.line10to150(line10, line150);
     // kartr.printLine(line150, 150);
+    /*
     kartr.line15toCode24(line15_1, code24);
     kartr.code24toCode48(code24, code48);
 
@@ -68,17 +69,18 @@ void setup()
         Serial.print(" = ");
         Serial.println(code24free[i], HEX);
     }
+    */
     // u_int8_t *code48 = (uint8_t *)code24; // Создаем переменную в которую пишем адрес буфера в нужном формате
     //                                       // code48Send = *code48;                // Копируем из этой перемнной данные в мою структуру
 
-    Serial.println(" =code48= ");
-    for (int i = 0; i < 48; i++)
-    {
-        Serial.print(" i= ");
-        Serial.print(i);
-        Serial.print(" = ");
-        Serial.println(code48free[i], HEX);
-    }
+    // Serial.println(" =code48= ");
+    // for (int i = 0; i < 48; i++)
+    // {
+    //     Serial.print(" i= ");
+    //     Serial.print(i);
+    //     Serial.print(" = ");
+    //     Serial.println(code48free[i], HEX);
+    // }
 
     offLed(); // Отключение светодиодов
     Serial.println(String(micros()) + " End SetUp.");
@@ -91,7 +93,7 @@ void loop()
 {
 
     // printf("+\n");
-    digitalWrite(PIN_ANALIZ, 1);
+    // digitalWrite(PIN_ANALIZ, 1);
     // Led_Blink(PIN_LED_BLUE, 500); // Мигаем светодиодом каждую секунду, что-бы было видно что цикл не завис
     Led_Blink(PIN_LED_RED, 500); // Мигаем светодиодом каждую секунду, что-бы было видно что цикл не завис
 
@@ -117,13 +119,16 @@ void loop()
     if (flag_data) // Если обменялись данными
     {
         flag_data = false;
-        //  printf("+\n");
-        processing_Data(); // Обработка пришедших данных после состоявшегося обмена
-        //  executeCommand();  // Выполнение пришедших команд
+        if (flag_goog_data_time) // Если прерывание было вовремя, а не случайное
+        {
+            printf(" diff= %i \n ", diff);
+            //  printf("+\n");
+            processing_Data(); // Обработка пришедших данных после состоявшегося обмена
+            //  executeCommand();  // Выполнение пришедших команд
 
-        printf(" Receive id= %i cheksum= %i All obmen= %i bed_time= %i bed_crc= %i \n ", Data2Print_receive.id, Data2Print_receive.cheksum, obmen_all, obmen_bed_time, obmen_bed_crc);
-        // printf(" command= %i radius= %f speed= %f motor_video_angle= %f \n", Data2Print_receive.command_body, Data2Print_receive.radius, Data2Print_receive.speed, Data2Print_receive.motor_video_angle);
-        // printf(" \n");
+            printf(" Receive id= %i cheksum= %i All obmen= %i bed_time= %i bed_crc= %i \n ", Data2Print_receive.id, Data2Print_receive.cheksum, obmen_all, obmen_bed_time, obmen_bed_crc);
+            // printf(" \n");
+        }
 
 #ifdef SPI_protocol_def
         collect_Data();         // Собираем данные в структуре для отправки
@@ -141,18 +146,18 @@ void loop()
     {
         flag_timer_1sec = false;
 
-        printLine(line15_1,36);
-        printLine(line15_0,36);
-        printLine(line15_4,500);
-        printLine(line15_1,36);
-        printLine(line15_0,36);
-        printLine(line15_2,36);
-        printLine(line15_3,36);
-        printLine(line15_2,36);
-        printLine(line15_0,36);
-        printLine(line15_1,36);
+        // printLine(line15_1,36);
+        // printLine(line15_0,36);
+        // printLine(line15_4,500);
+        // printLine(line15_1,36);
+        // printLine(line15_0,36);
+        // printLine(line15_2,36);
+        // printLine(line15_3,36);
+        // printLine(line15_2,36);
+        // printLine(line15_0,36);
+        // printLine(line15_1,36);
 
-        sendSPI(code48free, 48); // Какой массив отправлять и размер массива                // Check if transmission was successful
+        // sendSPI(code48free, 48); // Какой массив отправлять и размер массива                // Check if transmission was successful
 
         printf(" %f \n", millis() / 1000.0);
     }

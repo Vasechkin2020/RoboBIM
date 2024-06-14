@@ -82,18 +82,17 @@ IRAM_ATTR void ready_tx(spi_slave_transaction_t *trans)
     // digitalWrite(OUT_LATCH_PIN, HIGH);
     // digitalWrite(OUT_LATCH_PIN, LOW);
 }
-
+uint32_t diff = 0;
 IRAM_ATTR void rx_ok(spi_slave_transaction_t *trans) // IRAM_ATTR Добавить так чтобы в другой памяти были функции ???
 {
-    obmen_all++; // Считаем сколько было обменов данными
 
     // Иногда из-за помех, звона или чего-то еще мы получаем два IRQ друг за другом. Это решается с помощью
     // смотреть на время между прерываниями и отказываться от любого прерывания слишком близко к другому.
     //  https://github.com/espressif/esp-idf/blob/f8bda324ecde58214aaa00ab5e0da5eea9942aaf/examples/peripherals/spi_slave/sender/main/app_main.c
 
-    static uint32_t last_isr_time;
+    static uint32_t last_isr_time = 0;
     uint32_t currtime = micros();
-    uint32_t diff = currtime - last_isr_time;
+    diff = currtime - last_isr_time;
     last_isr_time = currtime; // Запоминаем время правильного прерывания
 
     if (diff < 1000) // Если новое прерывание возникло рашьше чем 1000 микросекунд (1 милисекунды)
@@ -104,6 +103,7 @@ IRAM_ATTR void rx_ok(spi_slave_transaction_t *trans) // IRAM_ATTR Добавит
     }
     else
     {
+        obmen_all++; // Считаем сколько было обменов данными
         flag_goog_data_time = true;
     }
     flag_data = true; // Флаг что обменялись данными
@@ -114,8 +114,10 @@ void initSPI_slave()
     Serial.println("Control Slave_SPI init !");
     pinMode(PIN_NUM_MISO, OUTPUT); // Линия на выход
     // ПО умолчанию все к минусу кроме чипселект
-    pinMode(PIN_NUM_MOSI, INPUT_PULLDOWN); // Линия на вход подтянута к минусу
-    pinMode(PIN_NUM_CLK, INPUT_PULLDOWN);  // Линия на вход подтянута к минусу
+    pinMode(PIN_NUM_MOSI, INPUT); // Линия на вход подтянута к минусу
+    pinMode(PIN_NUM_CLK, INPUT);  // Линия на вход подтянута к минусу
+    // pinMode(PIN_NUM_MOSI, INPUT_PULLDOWN); // Линия на вход подтянута к минусу
+    // pinMode(PIN_NUM_CLK, INPUT_PULLDOWN);  // Линия на вход подтянута к минусу
 
     pinMode(PIN_NUM_CS, INPUT_PULLUP); // Линия на вход подтянута к Плюсу
 
@@ -146,7 +148,7 @@ void spi_slave_queue_Send()
     memset(buf_slave_receive, 0, sizeof(buf_slave_receive));
     rx_start_transaction.length = SIZE_BUFF * 8 + 32;   // Колличество бит в транзакции с запасом
     rx_start_transaction.rx_buffer = buf_slave_receive; // Буфер памяти куда получим структуру
-    rx_start_transaction.tx_buffer = &Print2Data_send;    // Ссылка на структуру которую отправляем
+    rx_start_transaction.tx_buffer = &Print2Data_send;  // Ссылка на структуру которую отправляем
     ret = spi_slave_queue_trans(RX_HOST, &rx_start_transaction, portMAX_DELAY);
     assert(ret == ESP_OK);
 }
@@ -160,8 +162,8 @@ void processing_Data()
     if (flag_goog_data_time) // Если прерывание было вовремя, а не случайное
     {
         SData2Print *copy_buf_slave_receive = (SData2Print *)buf_slave_receive; // Создаем переменную в которую пишем адрес буфера в нужном формате
-        Data2Print_receive = *copy_buf_slave_receive;                                     // Копируем из этой перемнной данные в мою структуру
-        uint32_t cheksum_receive = measureCheksum(Data2Print_receive);                    // Считаем контрольную сумму пришедшей структуры
+        Data2Print_receive = *copy_buf_slave_receive;                           // Копируем из этой перемнной данные в мою структуру
+        uint32_t cheksum_receive = measureCheksum(Data2Print_receive);          // Считаем контрольную сумму пришедшей структуры
 
         if (cheksum_receive != Data2Print_receive.cheksum || Data2Print_receive.cheksum == 0)
         {
@@ -170,11 +172,11 @@ void processing_Data()
     }
 }
 
-void sendSPI(uint8_t *arrSend_, uint8_t  size_)
+void sendSPI(uint8_t *arrSend_, uint8_t size_)
 {
-    memset(&t, 0, sizeof(t));      // Zero out the transaction
-    t.length = size_ * 8; // Length is in bits (48 bytes * 8 bits/byte)
-    t.tx_buffer = arrSend_;          // Data
+    memset(&t, 0, sizeof(t));              // Zero out the transaction
+    t.length = size_ * 8;                  // Length is in bits (48 bytes * 8 bits/byte)
+    t.tx_buffer = arrSend_;                // Data
     ret = spi_device_transmit(handle, &t); // Transmit! // Начало передачи данных по SPI
     assert(ret == ESP_OK);                 // Check if transmission was successful
 }
