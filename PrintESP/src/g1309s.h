@@ -16,8 +16,9 @@ public:
 
     //void line150toCode24(uint8_t *line150_, uint16_t *code24_); // Метод преобразования из массива 150 элементов в 11 кодовых значений в 2 байта
 
-    void line15toCode24(uint8_t *line15_, uint16_t *code24_); // Метод преобразования из массива 10 элементов в 11 кодовых значений в 2 байта
+    void line15toCode24(uint8_t *line15_, uint16_t *code24_); // Метод преобразования из массива 15 элементов в 11 кодовых значений в 2 байта
     void code24toCode48(uint16_t *code24_, uint8_t *code48_);   // Метод преобразования из массива 24 элементов в массив 48 элементов по 1 байту для передачи по SPI в правильном порядке
+    void code48toCode48Arr(uint8_t *code48_, uint8_t *code48Arr_);   // Метод записи массива одиночного в многомерный
 };
 
 CG1309s::CG1309s(/* args */)
@@ -48,7 +49,7 @@ void CG1309s::printLine(uint8_t *line_, uint8_t size_)
     }
     printf("\n");
 }
-// Метод преобразования из массива 150 элементов в 11 кодовых значений в 2 байта
+// Метод преобразования из массива 15 элементов в 11 кодовых значений в 2 байта
 void CG1309s::line15toCode24(uint8_t *line15_, uint16_t *code24_)
 {
     int count = 0;
@@ -196,7 +197,6 @@ void CG1309s::line15toCode24(uint8_t *line15_, uint16_t *code24_)
     // }
 }
 // Метод преобразования из массива 24 элементов в массив 48 элементов по 1 байту для передачи по SPI в правильном порядке
-
 void CG1309s::code24toCode48(uint16_t *code24_, uint8_t *code48_)
 {
     uint8_t *temp48 = (uint8_t *)code24_; // Меняем размер адреса на однобайтный
@@ -206,5 +206,37 @@ void CG1309s::code24toCode48(uint16_t *code24_, uint8_t *code48_)
         code48_[i + 1] = temp48[i];
     }
 }
+
+// Метод записи массива одиночного в многомерный
+void CG1309s::code48toCode48Arr(uint8_t *code48_, uint8_t *code48Arr_)
+
+{
+    for (int i = 0; i < 48; i++)
+    {
+        code48Arr_[i] = code48_[i];
+    }
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #endif

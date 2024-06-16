@@ -70,7 +70,7 @@ int obmen_bed_crc = 0; // Подсчет успешных и нет обмено
 volatile bool flag_data = false;           // Флаг что данные передались
 volatile bool flag_goog_data_time = false; // Флаг что данные пришли через правильное время
 
-#define SIZE_BUFF 64 // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
+#define SIZE_BUFF 160 // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
 // WORD_ALIGNED_ATTR unsigned char buf_slave_receive[SIZE_BUFF]; // Буфер в 1 kByte
 WORD_ALIGNED_ATTR unsigned char buf_slave_receive[SIZE_BUFF]; // Буфер в  Byte
 
@@ -174,11 +174,12 @@ void processing_Data()
 
 void sendSPI(uint8_t *arrSend_, uint8_t size_)
 {
-    memset(&t, 0, sizeof(t));              // Zero out the transaction
-    t.length = size_ * 8;                  // Length is in bits (48 bytes * 8 bits/byte)
-    t.tx_buffer = arrSend_;                // Data
-    ret = spi_device_transmit(handle, &t); // Transmit! // Начало передачи данных по SPI
-    assert(ret == ESP_OK);                 // Check if transmission was successful
+    memset(&t, 0, sizeof(t)); // Zero out the transaction
+    t.length = size_ * 8;     // Length is in bits (48 bytes * 8 bits/byte)
+    t.tx_buffer = arrSend_;   // Data
+    // ret = spi_device_transmit(handle, &t); // Transmit! // Начало передачи данных по SPI
+    ret = spi_device_queue_trans(handle, &t, portMAX_DELAY); // Transmit! // Начало передачи данных по SPI
+    assert(ret == ESP_OK);                                   // Check if transmission was successful
 }
 
 #endif

@@ -1,36 +1,24 @@
 #ifndef CODE_H
 #define CODE_H
 
-// Функция фильтрующая(сглаживающая) значения берет старое с меньшим весом и новое с большим
-float filtr_My(float old_, float new_, float ves_new_)
-{
-  return (old_ * (1.0 - ves_new_)) + (new_ * ves_new_);
-}
-
-// Функция записи строки в мой массив символов и обрезание строки
-void stroka2Massiv(const char *stroka_, char *massiv_, byte count_)
-{
-  for (byte i = 0; i < count_; i++)
-  {
-    massiv_[i] = stroka_[i];
-    if (massiv_[i] == 0) // Если закончилась строка, строка заканчивается нулем
-      return;
-    // printf("%c ", massiv_[i]);
-  }
-}
-
-void initLed()
+void initPIN()
 {
   pinMode(PIN_LED_RED, OUTPUT); // Не работает пин. При инициализации SPI_slave функция его занимает и дает всегда половину напряжения и он не реагирует на команды.
   pinMode(PIN_LED_BLUE, OUTPUT);
+  pinMode(PIN_ANALIZ, OUTPUT);
+  pinMode(36, INPUT); // Нет внутренних подтяжек на 4 пинах, которые только на вход!!!!!!!!!!!!!!!!!!
+
+
   digitalWrite(PIN_LED_RED, 1);  // Запустился SetUp
   digitalWrite(PIN_LED_BLUE, 1); // Запустился SetUp
+  digitalWrite(PIN_ANALIZ, 1); // Запустился SetUp
 }
 
-void offLed()
+void offPIN()
 {
   digitalWrite(PIN_LED_RED, 0);  // Запустился SetUp
   digitalWrite(PIN_LED_BLUE, 0); // Запустился SetUp
+  digitalWrite(PIN_ANALIZ, 0); // Запустился SetUp
 }
 // Функция мигания светодиодом в основном цикле
 void Led_Blink(int led_, unsigned long time_)
@@ -41,9 +29,6 @@ void Led_Blink(int led_, unsigned long time_)
   {
     led_status = 1 - led_status;
     digitalWrite(led_, led_status);
-    // digitalWrite(PIN_POWER_OFF, 1); // Выключение питания
-    // delay(50);
-    // digitalWrite(PIN_POWER_OFF, 0); // Выключение питания
     led_time = millis();
   }
 }
@@ -51,31 +36,17 @@ void Led_Blink(int led_, unsigned long time_)
 // Отработка пришедших команд. Изменение скорости, траектории и прочее
 void executeCommand()
 {
-  static int command_pred = 0; // Переменная для запоминания предыдущей команды
-  // if (Data2Print_receive.command_body == 0 && Data2Print_receive.command_body != command_pred) // Если пришла команда 0 и предыдущая была другая
-  // {
-  //   // Serial.println("commanda  STOP...");
-  //   // stopMotor(); //все останавливаем
-  // }
-  // if (Data2Print_receive.command_body == 1) // Если командв двигаться то азадем движение на 1 секунду
-  // {
-  //   // setSpeed_time(Data2Print_receive.speed, Data2Print_receive.radius, 1000);
-  //   // setSpeed_time(0.2, 0.2, 1000);
-  // }
-  // command_pred = Data2Print_receive.command_body; // Запоминаяем команду
+  controlPrint = Data2Print_receive.controlPrint; // Сохраняем в переменную пришедший режим печати
+  uint64_t interval = (float)1000000 / (controlPrint.speed * 1000 * controlPrint.intensity ); // Метры переводим в милиметры, далее умножаем на сколько раз мы хотим прыснуть картриджем на 1 мм, получаем сколько раз нужно прыснуть в секунду,превращаем в микросекунды, так как нас таймер на микросекунду
+  timerAlarmWrite(timer1, interval, true); // Устанавливаем период прерывания по таймеру
 }
 
 // Функция исполняемая по прерыванию по таймеру 0
 void IRAM_ATTR onTimer() // Обработчик прерывания таймера 0 по совпадению A 	1 раз в 1 милисекунду
 {
-  // portENTER_CRITICAL_ISR(&timerMux);
-  // interruptCounter++;
-  // portEXIT_CRITICAL_ISR(&timerMux);
-
   count_timer_10millisec++;
   count_timer_50millisec++;
   count_timer_1sec++;
-  count_timer_60sec++;
 
   // каждые 10 милисекунд
   if (count_timer_10millisec >= 10)
@@ -95,12 +66,36 @@ void IRAM_ATTR onTimer() // Обработчик прерывания тайме
     count_timer_1sec = 0;
     flag_timer_1sec = true;
   }
-  // Таймер на 1 минуту
-  if (count_timer_60sec >= 60000)
+}
+// Функция исполняемая по прерыванию по таймеру 1
+void IRAM_ATTR onTimer1() // Обработчик прерывания таймера 0 по совпадению A
+{
+  if (controlPrint.status == 1) // Если Status равен 1 печатаем, если нулю то нет
   {
-    count_timer_60sec = 0;
-    flag_timer_60sec = true;
+    sendSPI(code48Arr[controlPrint.mode], 48); // Какой массив отправлять и размер массива                // Check if transmission was successful
   }
+
+  // printLine(line15_1,36);
+  // printLine(line15_0,36);
+  // printLine(line15_4,500);
+  // printLine(line15_1,36);
+  // printLine(line15_0,36);
+  // printLine(line15_2,36);
+  // printLine(line15_3,36);
+  // printLine(line15_2,36);
+  // printLine(line15_0,36);
+  // printLine(line15_1,36);
+
+  // kartr.code24toCode48(code24free, code48free);
+  // sendSPI(code48free, 48); // Какой массив отправлять и размер массива                // Check if transmission was successful
+
+  // if (flag_motor_L_EN) // Если флаг вращения моторов включен тогда делаем импульс
+  // {
+  //     delayMicroseconds(1);
+  //     timerAlarmWrite(timer1, Timeing_Step_L, true); // Устанавливаем период прерывания по таймеру
+  //     set_odom_impuls(odom_dir_L, odom_impuls_L);    // Считаем ипульсы для одометрии типа как энкодер
+  //     digitalWrite(PIN_L_Step, 0);
+  // }
 }
 
 // Инициализация таймера 0. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
@@ -109,17 +104,27 @@ void initTimer_0()
   printf(" Starrt initTimer_0 ... \n");
   timer0 = timerBegin(0, 80, true);             // Номер таймера, делитель(прескаллер), Считать вверх, прибавлять (true)  Частота базового сигнала 80  Мега герц, значит будет 1 микросекунда
   timerAttachInterrupt(timer0, &onTimer, true); // Какой таймер используем, какую функцию вызываем,  тип прерывания  edge или level interrupts
-  timerAlarmWrite(timer0, 1000, true);          // Какой таймер, до скольки считаем , сбрасываем ли счетчик при срабатывании 1000 микросекунд эти 1 милисекунда
+  timerAlarmWrite(timer0, 1000, true);          // Какой таймер, до скольки считаем , сбрасываем ли счетчик при срабатывании 1000 микросекунд это 1 милисекунда
   timerAlarmEnable(timer0);                     // Запускаем таймер
+}
+// Инициализация таймера 1. Всего 4 таймера вроде от 0 до 3 //https://techtutorialsx.com/2017/10/07/esp32-arduino-timer-interrupts/
+void initTimer_1()
+{
+  printf(" Start initTimer_1 ... \n");
+  timer1 = timerBegin(1, 80, true);              // Номер таймера, делитель(прескаллер), Считать вверх, прибавлять (true)  Частота базового сигнала 80  Мега герц, значит будет 1 микросекунда
+  timerAttachInterrupt(timer1, &onTimer1, true); // Какой таймер используем, какую функцию вызываем,  тип прерывания  edge или level interrupts
+  timerAlarmWrite(timer1, 1000, true);         // Какой таймер, до скольки считаем , сбрасываем ли счетчик при срабатывании. 1000 микросекунд эти 1 милисекунда
+  timerAlarmEnable(timer1);                      // Запускаем таймер
+  printf("%lu initTimer_1 Ok. \n", millis());
 }
 
 // Собираем нужные данные и пишем в структуру на отправку
 void collect_Data()
 {
   Print2Data_send.id++;
-  
+
   Print2Data_send.spi.all = obmen_all;
-  Print2Data_send.spi.bed = obmen_bed_crc;// + obmen_bed_time;
+  Print2Data_send.spi.bed = obmen_bed_crc; // + obmen_bed_time;
 
   Print2Data_send.cheksum = measureCheksum(Print2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
 
@@ -155,4 +160,67 @@ void printLine(uint8_t *line_, uint16_t count_)
   // sendSPI(code48,sizeof(code48)); // Какой массив отправлять и размер массива
   // delayMicroseconds(250);
 }
+
+// Заполнение массива строками варианты печати
+void initLineArray()
+{
+  kartr.line15toCode24(line15_0, code24);
+  kartr.code24toCode48(code24, code48);
+  kartr.code48toCode48Arr(code48, code48Arr[0]);
+
+  kartr.line15toCode24(line15_1, code24);
+  kartr.code24toCode48(code24, code48);
+  kartr.code48toCode48Arr(code48, code48Arr[1]);
+
+  kartr.line15toCode24(line15_2, code24);
+  kartr.code24toCode48(code24, code48);
+  kartr.code48toCode48Arr(code48, code48Arr[2]);
+
+  kartr.line15toCode24(line15_3, code24);
+  kartr.code24toCode48(code24, code48);
+  kartr.code48toCode48Arr(code48, code48Arr[3]);
+
+  kartr.line15toCode24(line15_4, code24);
+  kartr.code24toCode48(code24, code48);
+  kartr.code48toCode48Arr(code48, code48Arr[4]);
+
+  kartr.line15toCode24(line15_5, code24);
+  kartr.code24toCode48(code24, code48);
+  kartr.code48toCode48Arr(code48, code48Arr[5]);
+
+  // kartr.printLine(line10, 10);
+  // Serial.println(String(micros()) + "AAAA " + line10[0]);
+  // printf("ppppp");
+  // kartr.line10to150(line10, line150);
+  // kartr.printLine(line150, 150);
+
+  // kartr.line15toCode24(line15_1, code24);
+  // kartr.code24toCode48(code24, code48);
+
+  // kartr.line15toCode24(line15_0, code24null);
+  // kartr.code24toCode48(code24null, code48null);
+
+  Serial.println(" === ");
+  for (int i = 0; i < 48; i++)
+  {
+      Serial.print(" i= ");
+      Serial.print(i);
+      Serial.print(" = ");
+      Serial.println(code48Arr[1][i], HEX);
+  }
+  Serial.println(" === ");
+
+  // u_int8_t *code48 = (uint8_t *)code24; // Создаем переменную в которую пишем адрес буфера в нужном формате
+  //                                       // code48Send = *code48;                // Копируем из этой перемнной данные в мою структуру
+
+  // Serial.println(" =code48= ");
+  // for (int i = 0; i < 48; i++)
+  // {
+  //     Serial.print(" i= ");
+  //     Serial.print(i);
+  //     Serial.print(" = ");
+  //     Serial.println(code48free[i], HEX);
+  // }
+}
+
 #endif
