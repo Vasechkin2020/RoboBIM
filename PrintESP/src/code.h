@@ -8,17 +8,16 @@ void initPIN()
   pinMode(PIN_ANALIZ, OUTPUT);
   pinMode(36, INPUT); // Нет внутренних подтяжек на 4 пинах, которые только на вход!!!!!!!!!!!!!!!!!!
 
-
   digitalWrite(PIN_LED_RED, 1);  // Запустился SetUp
   digitalWrite(PIN_LED_BLUE, 1); // Запустился SetUp
-  digitalWrite(PIN_ANALIZ, 1); // Запустился SetUp
+  digitalWrite(PIN_ANALIZ, 1);   // Запустился SetUp
 }
 
 void offPIN()
 {
   digitalWrite(PIN_LED_RED, 0);  // Запустился SetUp
   digitalWrite(PIN_LED_BLUE, 0); // Запустился SetUp
-  digitalWrite(PIN_ANALIZ, 0); // Запустился SetUp
+  digitalWrite(PIN_ANALIZ, 0);   // Запустился SetUp
 }
 // Функция мигания светодиодом в основном цикле
 void Led_Blink(int led_, unsigned long time_)
@@ -37,8 +36,17 @@ void Led_Blink(int led_, unsigned long time_)
 void executeCommand()
 {
   controlPrint = Data2Print_receive.controlPrint; // Сохраняем в переменную пришедший режим печати
-  uint64_t interval = (float)1000000 / (controlPrint.speed * 1000 * controlPrint.intensity ); // Метры переводим в милиметры, далее умножаем на сколько раз мы хотим прыснуть картриджем на 1 мм, получаем сколько раз нужно прыснуть в секунду,превращаем в микросекунды, так как нас таймер на микросекунду
-  timerAlarmWrite(timer1, interval, true); // Устанавливаем период прерывания по таймеру
+  uint64_t interval = 0;
+  if (controlPrint.speed != 0 && controlPrint.intensity != 0)
+  {
+    interval = abs((float)1000000 / (controlPrint.speed * 1000 * controlPrint.intensity)); // Метры переводим в милиметры, далее умножаем на сколько раз мы хотим прыснуть картриджем на 1 мм, получаем сколько раз нужно прыснуть в секунду,превращаем в микросекунды, так как нас таймер на микросекунду
+    if (interval > 1000000)                                                                // Если очень большой на очень маленькой скорости то устанавливам 1 раз в секунду или 1 000 000 микросекунд
+      interval = 1000000;
+  }
+  else
+  {
+    timerAlarmWrite(timer1, 1000, true); // Устанавливаем период прерывания по таймеру
+  }
 }
 
 // Функция исполняемая по прерыванию по таймеру 0
@@ -113,7 +121,7 @@ void initTimer_1()
   printf(" Start initTimer_1 ... \n");
   timer1 = timerBegin(1, 80, true);              // Номер таймера, делитель(прескаллер), Считать вверх, прибавлять (true)  Частота базового сигнала 80  Мега герц, значит будет 1 микросекунда
   timerAttachInterrupt(timer1, &onTimer1, true); // Какой таймер используем, какую функцию вызываем,  тип прерывания  edge или level interrupts
-  timerAlarmWrite(timer1, 1000, true);         // Какой таймер, до скольки считаем , сбрасываем ли счетчик при срабатывании. 1000 микросекунд эти 1 милисекунда
+  timerAlarmWrite(timer1, 1000, true);           // Какой таймер, до скольки считаем , сбрасываем ли счетчик при срабатывании. 1000 микросекунд эти 1 милисекунда
   timerAlarmEnable(timer1);                      // Запускаем таймер
   printf("%lu initTimer_1 Ok. \n", millis());
 }
@@ -200,15 +208,15 @@ void initLineArray()
   // kartr.line15toCode24(line15_0, code24null);
   // kartr.code24toCode48(code24null, code48null);
 
-  Serial.println(" === ");
-  for (int i = 0; i < 48; i++)
-  {
-      Serial.print(" i= ");
-      Serial.print(i);
-      Serial.print(" = ");
-      Serial.println(code48Arr[1][i], HEX);
-  }
-  Serial.println(" === ");
+  // Serial.println(" === ");
+  // for (int i = 0; i < 48; i++)
+  // {
+  //   Serial.print(" i= ");
+  //   Serial.print(i);
+  //   Serial.print(" = ");
+  //   Serial.println(code48Arr[1][i], HEX);
+  // }
+  // Serial.println(" === ");
 
   // u_int8_t *code48 = (uint8_t *)code24; // Создаем переменную в которую пишем адрес буфера в нужном формате
   //                                       // code48Send = *code48;                // Копируем из этой перемнной данные в мою структуру
