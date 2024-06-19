@@ -161,7 +161,7 @@ void processing_Data()
 
     if (flag_goog_data_time) // Если прерывание было вовремя, а не случайное
     {
-        SData2Print *copy_buf_slave_receive = (SData2Print *)buf_slave_receive; // Создаем переменную в которую пишем адрес буфера в нужном формате
+        Struct_Data2Print *copy_buf_slave_receive = (Struct_Data2Print *)buf_slave_receive; // Создаем переменную в которую пишем адрес буфера в нужном формате
         Data2Print_receive = *copy_buf_slave_receive;                           // Копируем из этой перемнной данные в мою структуру
         uint32_t cheksum_receive = measureCheksum(Data2Print_receive);          // Считаем контрольную сумму пришедшей структуры
 

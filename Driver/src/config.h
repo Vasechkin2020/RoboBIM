@@ -57,7 +57,7 @@ struct SLed
   uint8_t led[NUM_LEDS]; // Маасив через который управляем светодиодами
 };
 // Структура получаемых данных от Data к контроллеру Driver
-struct SData2Driver
+struct Struct_Data2Driver
 {
   uint32_t id = 0;         // Номер команды по порядку
   SControl control;        // Структура управления машиной
@@ -65,7 +65,7 @@ struct SData2Driver
   uint32_t cheksum = 0;    // Контрольная сумма данных в структуре
 };
 
-SData2Driver Data2Driver_receive;                               // Экземпляр структуры получаемых данных
+Struct_Data2Driver Data2Driver_receive;                               // Экземпляр структуры получаемых данных
 const int size_structura_receive = sizeof(Data2Driver_receive); // Размер структуры с данными которые получаем
 
 //*****************************************************************************************************************************************************

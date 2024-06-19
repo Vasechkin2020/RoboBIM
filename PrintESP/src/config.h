@@ -43,14 +43,14 @@ struct SSpi
 };
 
 // Структура в которой все собранные данные передаются из Print к Data
-struct SPrint2Data
+struct Struct_Print2Data
 {
   uint32_t id = 0;      // id команды
   SSpi spi;             // Структура по состоянию обмена по шине SPI
   uint32_t cheksum = 0; // Контрольная сумма данных в структуре
 };
 
-SPrint2Data Print2Data_send;                             // Тело робота. тут все переменные его характеризующие на низком уровне
+Struct_Print2Data Print2Data_send;                             // Тело робота. тут все переменные его характеризующие на низком уровне
 const int size_structura_send = sizeof(Print2Data_send); // Размер структуры с данными которые передаем
 
 //*********************************************************************
@@ -64,14 +64,14 @@ struct SControlPrint
 };
 
 // Структура получаемых данных из Data к Print
-struct SData2Print
+struct Struct_Data2Print
 {
   uint32_t id = 0;            // Id команды
   SControlPrint controlPrint; // Режим печати
   uint32_t cheksum = 0;       // Контрольная сумма данных в структуре
 };
 
-SData2Print Data2Print_receive;                                // Экземпляр структуры получаемых данных
+Struct_Data2Print Data2Print_receive;                                // Экземпляр структуры получаемых данных
 const int size_structura_receive = sizeof(Data2Print_receive); // Размер структуры с данными которые получаем
 SControlPrint controlPrint;                                       // Режим работы печати
 

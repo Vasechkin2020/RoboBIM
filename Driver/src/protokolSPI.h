@@ -118,13 +118,13 @@ void spi_slave_queue_Send()
 // Обработка пришедших данных после срабатывания прерывания что обмен состоялся
 void processing_Data()
 {
-    SData2Driver Data2Driver_receive_temp;                                   // Экземпляр структуры получаемых данных временный, пока не посчитаем контроьную сумму и убедимся что данные хорошие
+    Struct_Data2Driver Data2Driver_receive_temp;                                   // Экземпляр структуры получаемых данных временный, пока не посчитаем контроьную сумму и убедимся что данные хорошие
     ret = spi_slave_get_trans_result(RX_HOST, &rx_end_transaction, portMAX_DELAY); // Wait for received data
     assert(ret == ESP_OK);
 
     if (flag_goog_data_time) // Если прерывание было вовремя, а не случайное
     {
-        SData2Driver *copy_buf_slave_receive = (SData2Driver *)buf_slave_receive; // Создаем переменную в которую пишем адрес буфера в нужном формате
+        Struct_Data2Driver *copy_buf_slave_receive = (Struct_Data2Driver *)buf_slave_receive; // Создаем переменную в которую пишем адрес буфера в нужном формате
         Data2Driver_receive_temp = *copy_buf_slave_receive;                                   // Копируем из этой перемнной данные в мою структуру
         uint32_t cheksum_receive = measureCheksum(Data2Driver_receive_temp);                  // Считаем контрольную сумму пришедшей структуры
 
