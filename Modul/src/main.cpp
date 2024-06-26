@@ -27,11 +27,11 @@ void setup()
     //pinMode(PIN_LED, OUTPUT);
     //digitalWrite(PIN_LED, 1);
 
-    Serial.begin(115200);
+    Serial.begin(921600);
     Serial2.begin(115200);
 
     delay(500);
-    Serial.println(String(millis()) + "Start ESP32_Modul printBIM(c) 2024 printBIM.com 22");
+    Serial.println(String(millis()) + "Start ESP32_Modul printBIM(c) 2024 printBIM.com 2106");
 
     initTimer_0();   // Запуск таймера 0
     
@@ -48,7 +48,6 @@ void setup()
     delay(999);
 
     // sk60plus[0].setModulAddress(0X01);
-    // delay(999);
     // delay(99999);
 
 #ifdef MOTOR
@@ -58,34 +57,7 @@ void setup()
 
     setZeroMotor(); // Установка в ноль
     // digitalWrite(PIN_Motor_En, 0); // 0- Разрешена работа 1- запрещена работа драйвера
-    // printf("countPulse= %i \n", countPulse);
-    // int32_t aa = micros();
-    // digitalWrite(PIN_Motor_En, 0); // Включаем драйвера
 
-    // for (int i = 0; i < 4; i++)
-    // {
-    //     setMotorAngle(0, 90);
-    //     setMotorAngle(1, 90);
-    //     setMotorAngle(2, 90);
-    //     setMotorAngle(3, 90);
-    // }
-
-    // printf("motor[0].position= %i \n", motor[0].position);
-
-    // int32_t bb = micros();
-    // printf("time run micros= %i \n", bb - aa);
-    // printf("countPulse= %i \n", countPulse);
-
-    // testMotorStop();
-
-    // initTimer_2(); //Таймер на 2 мотор
-    // setSpeed_R(0.5);
-    // setSpeed_L(0.5);
-
-    // while (1)
-    //     ;
-
-    // stopMotor();
 #endif
 
 #ifdef SPI_protocol
@@ -97,31 +69,29 @@ void setup()
     Serial.println(String(millis()) + " End SetUp !!!");
     // digitalWrite(PIN_LED, 0);
     flag = true;
-    delay(3000);
+    delay(1000);
 }
 
 void loop()
 {
 // digitalWrite(PIN_ANALIZ, 1);
 #ifdef LASER
+
+  if (Data2Modul_receive.controlLaser.mode != 0) // Если идет команда  0 то не работаем, иначе работаем
+  {
     laserLoop(); // Обработка датчиков так что-бы не задерживать основной цикл и делать все короткими операциями
+    //printf("laserLoop... \n");
+  }
 #endif
-    //----------------------------- 50 миллисекунд --------------------------------------
-    if (flag_timer_50millisec)
-    {
-        flag_timer_50millisec = false;
-        // flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц
-    }
 
 //----------------------------- По факту обмена данными с верхним уровнем --------------------------------------
 #ifdef SPI_protocol
     if (flag_data) // Если обменялись данными
     {
         flag_data = false;
+        timeSpi = millis(); // Запоминаем время обмена
         // printf("+\n");
-
         processingDataReceive(); // Обработка пришедших данных после состоявшегося обмена  !!! Подумать почему меняю данные даже если они с ошибкой, потом по факту когда будет все работать
-                                 // Data2Modul_receive.command = 0; // В ручном режиме имитирую приход нужной команды
         executeDataReceive();    // Выполнение пришедших команд
 
         // printf(" Receive id= %i cheksum= %i command= %i ", Data2Modul_receive.id, Data2Modul_receive.cheksum,Data2Modul_receive.command );
@@ -134,10 +104,23 @@ void loop()
     }
 #endif
 
+if (millis() - timeSpi > 1000) //Если обмена нет больше секунды то отключаем все
+{
+    Data2Modul_receive.controlLaser.mode = 0;  //Отключаем лазерные датчики
+    Data2Modul_receive.controlMotor.mode = 0;  //Отключаем 
+    digitalWrite(PIN_Motor_En, 1); // Выключаем драйвера
+}
+
     //----------------------------- 10 миллисекунд --------------------------------------
     if (flag_timer_10millisec)
     {
         flag_timer_10millisec = false;
+    }
+    //----------------------------- 50 миллисекунд --------------------------------------
+    if (flag_timer_50millisec)
+    {
+        flag_timer_50millisec = false;
+        // flag_data = true; // Есть новые данные по шине // РУчной вариант имитации пришедших данных с частотой 20Гц
     }
 
     //----------------------------- 1 секунда --------------------------------------
@@ -204,8 +187,8 @@ void loop()
         printf(" %.3f  \n", millis() / 1000.0); // Печать времени что программа не зависла, закомментировать в реальной работе
         for (int i = 0; i < 4; i++)
         {
-            printf(" motor %i position %i destination %i status %i \n", i, motor[i].position, motor[i].destination, motor[i].status);
-            printf(" laser %i _distance %i _signalQuality %i \n", i, sk60plus[i]._distance, sk60plus[i]._signalQuality);
+            // printf(" motor %i position %i destination %i status %i \n", i, motor[i].position, motor[i].destination, motor[i].status);
+            //printf(" laser %i _distance %i _signalQuality %i \n", i, sk60plus[i]._distance, sk60plus[i]._signalQuality);
         }
 
         // printBody();

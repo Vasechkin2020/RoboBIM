@@ -77,12 +77,13 @@ private:
     bool checkingError(); // Проверка и разбор ошибки ответа
                           //-------------------------------------------------- PUBLIC -----------------------------------------------------------
 public:
-    byte _status = 0;            // Статус датчика. Изначально 0 (неопределенный)
+    uint32_t _status = 0;            // Статус датчика. Изначально 0 (неопределенный)
     uint16_t _hVersion = 0;      // Версия железа. Изначально 0 (неопределенный)
     uint16_t _sVersion = 0;      // Версия софта. Изначально 0 (неопределенный)
     uint16_t _sNumber = 0;       // Серийный номер. Изначально 0 (неопределенный)
     uint32_t _distance = 0;      // 
-    uint16_t _signalQuality = 0; // 
+    float    _angle = 0;      // Угол какой был у маторов в момент старта измерения
+    uint32_t _signalQuality = 0; // 
     uint16_t _inputVoltage = 0;  // 
     uint16_t _offSet = 0;        // Поправочное смещение. Изначально 0 (неопределенный)
     CSk60plus();
@@ -413,7 +414,7 @@ bool CSk60plus::readMeasureResult() // Function: master read out the distance me
     {
         _distance = (uint32_t)(_bufRead[9] | _bufRead[6] << 24 | _bufRead[7] << 16 | _bufRead[8] << 8);
         _signalQuality = (uint16_t)(_bufRead[11] | _bufRead[10] << 8);
-        printf(" laser= % i distance = %i mm SQ= %i \n", _addr, _distance, _signalQuality);
+        printf(" l= %i d= %i SQ= %i \n", _addr, _distance, _signalQuality);
         return true;
     }
     else

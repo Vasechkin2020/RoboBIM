@@ -176,8 +176,9 @@ void setMotorAngle(int32_t num, float _angle)
     if (motor[num].position == motor[num].destination) // Если текущая позиция и так тавна цели то ничего не делаем и выходим из функции
         return;
     digitalWrite(PIN_Motor_En, 0); // Включаем драйвера
-    printf("position= %i ", motor[num].position);
-    printf("destination= %i \n", motor[num].destination);
+    printf("set num= %i ", num);
+    printf("pos= %i ", motor[num].position);
+    printf("dest= %i \n", motor[num].destination);
     if (motor[num].position < motor[num].destination) // Если цель бпльше то вращение по часовой 1
     {
         digitalWrite(motor[num].dir_pin, 1);

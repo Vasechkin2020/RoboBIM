@@ -70,7 +70,7 @@ int obmen_bed_crc = 0; // Подсчет успешных и нет обмено
 volatile bool flag_data = false;           // Флаг что данные передались
 volatile bool flag_goog_data_time = false; // Флаг что данные пришли через правильное время
 
-#define SIZE_BUFF 160 // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
+#define SIZE_BUFF 192 // Размер буфера который передаем. Следить что-бы структуры не превышали этот размер Кратно 32 делать
 // WORD_ALIGNED_ATTR unsigned char buf_slave_receive[SIZE_BUFF]; // Буфер в 1 kByte
 WORD_ALIGNED_ATTR unsigned char buf_slave_receive[SIZE_BUFF]; // Буфер в  Byte
 
