@@ -110,26 +110,39 @@ void collect_Data_for_Send()
   Modul2Data_send.id++;
   Modul2Data_send.pinMotorEn = digitalRead(PIN_Motor_En); // Считываем состояние пина драйверов
 
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 4; i++) // Информация по моторам всегда
   {
     Modul2Data_send.motor[i].status = motor[i].status; // Считываем состояние пина драйверов
     // Modul2Data_send.motor[i].position = tfLocalToGlobal360(getAngle(motor[i].position), i);       // Записываем текущую позицию преобразуя из импульсов в градусы, надо еще в глобальную систему преобразовывать
     // Modul2Data_send.motor[i].destination = tfLocalToGlobal360(getAngle(motor[i].destination), i); // Считываем цель по позиции, надо еще в глобальную систему преобразовывать
     Modul2Data_send.motor[i].position = getAngle(motor[i].position);       // Записываем текущую позицию преобразуя из импульсов в градусы, надо еще в глобальную систему преобразовывать
     Modul2Data_send.motor[i].destination = getAngle(motor[i].destination); // Считываем цель по позиции, надо еще в глобальную систему преобразовывать
-
-    Modul2Data_send.laser[i].status = sk60plus[i]._status;                             // Считываем статаус дальномера
-    Modul2Data_send.laser[i].distance = (float)sk60plus[i]._distance * 0.001;          // Считываем измерение растояния и пересчитываем в метры !!!
-    Modul2Data_send.laser[i].signalQuality = sk60plus[i]._signalQuality;               // Считываем угол в котором произмели измерение
-    Modul2Data_send.laser[i].angle = sk60plus[i]._angle;                               // Считываем угол в котором произмели измерение
-    Modul2Data_send.laser[i].numPillar = Data2Modul_receive.controlMotor.numPillar[i]; // Переписываем номер столба на который измеряли расстояние
-    // Modul2Data_send.laser[i].angle = laser[i].angle;                 // Считываем угол в котором произмели измерение
-
-    Modul2Data_send.micric[i] = digitalRead(motor[i].micric_pin); //
+    Modul2Data_send.micric[i] = digitalRead(motor[i].micric_pin);          //
   }
+
+  for (int i = 0; i < 4; i++) // Информация по лазерам по ситуации
+  {
+
+    if (Data2Modul_receive.controlLaser.mode == 1) // Если команда работать с датчиком
+    {
+      Modul2Data_send.laser[i].status = sk60plus[i]._status;                             // Считываем статаус дальномера
+      Modul2Data_send.laser[i].distance = (float)sk60plus[i]._distance * 0.001;          // Считываем измерение растояния и пересчитываем в метры !!!
+      Modul2Data_send.laser[i].signalQuality = sk60plus[i]._signalQuality;               // Считываем угол в котором произмели измерение
+      Modul2Data_send.laser[i].angle = sk60plus[i]._angle;                               // Считываем угол в котором произвели измерение
+      Modul2Data_send.laser[i].numPillar = Data2Modul_receive.controlMotor.numPillar[i]; // Переписываем номер столба на который измеряли расстояние
+    }
+    else
+    {
+      Modul2Data_send.laser[i].status = 0;        // Считываем статаус дальномера
+      Modul2Data_send.laser[i].distance = 0;      // Считываем измерение растояния и пересчитываем в метры !!!
+      Modul2Data_send.laser[i].signalQuality = 0; // Считываем угол в котором произмели измерение
+      Modul2Data_send.laser[i].angle = 0;         // Считываем угол в котором произвели измерение
+      Modul2Data_send.laser[i].numPillar = -1;    // Переписываем номер столба на который измеряли расстояние
+    }
+  }
+
   Modul2Data_send.spi.all = spi.all;
   Modul2Data_send.spi.bed = spi.bed;
-
   Modul2Data_send.cheksum = measureCheksum(Modul2Data_send); // Вычисляем контрольную сумму структуры и пишем ее значение в последний элемент
 }
 

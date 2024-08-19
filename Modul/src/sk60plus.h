@@ -77,14 +77,14 @@ private:
     bool checkingError(); // Проверка и разбор ошибки ответа
                           //-------------------------------------------------- PUBLIC -----------------------------------------------------------
 public:
-    uint32_t _status = 0;            // Статус датчика. Изначально 0 (неопределенный)
+    uint32_t _status = 0;        // Статус датчика. Изначально 0 (неопределенный)
     uint16_t _hVersion = 0;      // Версия железа. Изначально 0 (неопределенный)
     uint16_t _sVersion = 0;      // Версия софта. Изначально 0 (неопределенный)
     uint16_t _sNumber = 0;       // Серийный номер. Изначально 0 (неопределенный)
-    uint32_t _distance = 0;      // 
-    float    _angle = 0;      // Угол какой был у маторов в момент старта измерения
-    uint32_t _signalQuality = 0; // 
-    uint16_t _inputVoltage = 0;  // 
+    uint32_t _distance = 0;      //
+    float _angle = 0;            // Угол какой был у маторов в момент старта измерения
+    uint32_t _signalQuality = 0; //
+    uint16_t _inputVoltage = 0;  //
     uint16_t _offSet = 0;        // Поправочное смещение. Изначально 0 (неопределенный)
     CSk60plus();
     ~CSk60plus();
@@ -149,6 +149,7 @@ void CSk60plus::init(byte addr_)
     readSoftwareVersion();
     readInputVoltage();
     setLaser(0);
+    printf("--- \n");
 }
 void CSk60plus::clearBuf()
 {
@@ -194,11 +195,11 @@ bool CSk60plus::readBuf()
     for (int i = 0; i < 13; i++)
     {
         _bufRead[i] = Serial2.read();
-        //if (_bufRead[i] != 0xFF)
-            //printf("%0#4X-", _bufRead[i]);
+        // if (_bufRead[i] != 0xFF)
+        // printf("%0#4X-", _bufRead[i]);
     }
-    //printf("\n");
-    // byte addr = _addr | 0b10000000;                 // R/W indicate bit, 0: Master write to Slave, 1: Master read from Slave  Slave address is 0x51, address has only 7-bits, so the address is from 0x00 to 0x7F, 0x00 is the default address before master issue module address change command, 0x7F is the broadcast address reserved for one-master to multi-slave network;
+    // printf("\n");
+    //  byte addr = _addr | 0b10000000;                 // R/W indicate bit, 0: Master write to Slave, 1: Master read from Slave  Slave address is 0x51, address has only 7-bits, so the address is from 0x00 to 0x7F, 0x00 is the default address before master issue module address change command, 0x7F is the broadcast address reserved for one-master to multi-slave network;
     if (_bufRead[0] == 0xAA) // Если первый байт 0xAA  и ответ от нужного датчика
     {
         return true;
@@ -211,7 +212,7 @@ bool CSk60plus::readBuf()
 
 void CSk60plus::readHardwareVersion() // Function: master read out the module’s HW version number;
 {
-    printf("readHardwareVersion \n");
+    printf("readHardwareVersion -> ");
     clearBuf();
     byte addr = _addr | 0b10000000; // R/W indicate bit, 0: Master write to Slave, 1: Master read from Slave  Slave address is 0x51, address has only 7-bits, so the address is from 0x00 to 0x7F, 0x00 is the default address before master issue module address change command, 0x7F is the broadcast address reserved for one-master to multi-slave network;
     byte buf[5] = {0xAA, addr, 0x00, 0x0A, 0x00};
@@ -221,12 +222,16 @@ void CSk60plus::readHardwareVersion() // Function: master read out the module’
     if (readBuf())
     {
         _hVersion = (uint16_t)(_bufRead[7] | (_bufRead[6] << 8));
+        printf("hVersion = %0#6X = %i\n", _hVersion, _hVersion);
     }
-    printf("hVersion = %0#6X = %i\n", _hVersion, _hVersion);
+    else
+    {
+        printf("readHardwareVersion = ERROR !!! \n");
+    }
 }
 void CSk60plus::readSoftwareVersion() // Function: master read out the module’s SW version number;
 {
-    printf("readSoftwareVersion \n");
+    printf("readSoftwareVersion -> ");
     clearBuf();
     byte addr = _addr | 0b10000000; // R/W indicate bit, 0: Master write to Slave, 1: Master read from Slave  Slave address is 0x51, address has only 7-bits, so the address is from 0x00 to 0x7F, 0x00 is the default address before master issue module address change command, 0x7F is the broadcast address reserved for one-master to multi-slave network;
     byte buf[5] = {0xAA, addr, 0x00, 0x0C, 0x00};
@@ -236,12 +241,16 @@ void CSk60plus::readSoftwareVersion() // Function: master read out the module’
     if (readBuf())
     {
         _sVersion = (uint16_t)(_bufRead[7] | (_bufRead[6] << 8));
+        printf("sVersion = %0#6X = %i \n", _sVersion, _sVersion);
     }
-    printf("sVersion = %0#6X = %i \n", _sVersion, _sVersion);
+    else
+    {
+        printf("readSoftwareVersion = ERROR !!! \n");
+    }
 }
 void CSk60plus::readSerialNumber() // Function: master read out the module’s Serial number;
 {
-    printf("readSerialNumber \n");
+    printf("readSerialNumber ->");
     clearBuf();
     byte addr = _addr | 0b10000000; // R/W indicate bit, 0: Master write to Slave, 1: Master read from Slave  Slave address is 0x51, address has only 7-bits, so the address is from 0x00 to 0x7F, 0x00 is the default address before master issue module address change command, 0x7F is the broadcast address reserved for one-master to multi-slave network;
     byte buf[5] = {0xAA, addr, 0x00, 0x0E, 0x00};
@@ -251,12 +260,16 @@ void CSk60plus::readSerialNumber() // Function: master read out the module’s S
     if (readBuf())
     {
         _sNumber = (uint16_t)(_bufRead[7] | (_bufRead[6] << 8));
+        printf(" sNumber = %0#6X = %i \n", _sNumber, _sNumber);
     }
-    printf("sNumber = %0#6X = %i \n", _sNumber, _sNumber);
+    else
+    {
+        printf("readSerialNumber = ERROR !!! \n");
+    }
 }
 void CSk60plus::readInputVoltage() // Function: master read out the module’s input voltage in mV with BCD encode;
 {
-    printf("readInputVoltage \n");
+    printf("readInputVoltage -> ");
     clearBuf();
     byte addr = _addr | 0b10000000; // R/W indicate bit, 0: Master write to Slave, 1: Master read from Slave  Slave address is 0x51, address has only 7-bits, so the address is from 0x00 to 0x7F, 0x00 is the default address before master issue module address change command, 0x7F is the broadcast address reserved for one-master to multi-slave network;
     byte buf[5] = {0xAA, addr, 0x00, 0x06, 0x00};
@@ -270,8 +283,12 @@ void CSk60plus::readInputVoltage() // Function: master read out the module’s i
         uint16_t a3 = ((_bufRead[7] >> 4)) * 10;          // Сдвигаем и убтраем младшие биты и прибавляем 0x30 тем самы превращаем в число
         uint16_t a4 = ((_bufRead[7] & 0b00001111)) * 1;   // Убираем старшие биты и прибавляет 0x30 тем самы превращаем в число
         _inputVoltage = a1 + a2 + a3 + a4;
+        printf("readInputVoltage = %i mV \n", _inputVoltage);
     }
-    printf("readInputVoltage = %i mV \n", _inputVoltage);
+    else
+    {
+        printf("readInputVoltage = ERROR !!! \n");
+    }
 }
 
 void CSk60plus::stopContinuous() // Function: Master transfer one byte 0x58 (upper case character ‘X’) to stop continuous measure mode immediately
@@ -282,7 +299,7 @@ void CSk60plus::stopContinuous() // Function: Master transfer one byte 0x58 (upp
 
 void CSk60plus::setLaser(byte ZZ_) // Function: turn on or turn off laser beam, if 0xZZ = 0x01 laser on, 0xZZ = 0x00 laser off.
 {
-    printf("setLaser \n");
+    printf("setLaser -> ");
     clearBuf();
     byte buf[9] = {0xAA, _addr, 0x01, 0xBE, 0x00, 0x01, 0x00, ZZ_, 0x00};
     buf[8] = calcCs(buf, 9);
@@ -292,11 +309,15 @@ void CSk60plus::setLaser(byte ZZ_) // Function: turn on or turn off laser beam, 
     {
         printf("setLaser status = %0#6X  \n", _bufRead[7]);
     }
+    else
+    {
+        printf("setLaser status = ERROR !!! \n");
+    }
 }
 
 void CSk60plus::setModulAddress(byte YY_) // Function: master set slave’s address, this address will not lost after module power off; Slave address set to 0xYY (!!!Beware: address only take bit[6:0], other bits will be ignored).
 {
-    printf("setModulAddress \n");
+    printf("setModulAddress ->");
     clearBuf();
     byte buf[9] = {0xAA, _addr, 0x00, 0x10, 0x00, 0x01, 0x00, YY_, 0x00};
     buf[8] = calcCs(buf, 9);
@@ -305,6 +326,10 @@ void CSk60plus::setModulAddress(byte YY_) // Function: master set slave’s addr
     if (readBuf()) // Если ответ правильный смотри что в ответе
     {
         printf("setModulAddress = %0#6X  \n", _bufRead[7]);
+    }
+    else
+    {
+        printf("setModulAddress = ERROR !!! \n");
     }
 }
 
@@ -375,7 +400,7 @@ void CSk60plus::startContinuousSuperFast() // Function: Initiate slave to do 1-s
 }
 void CSk60plus::getBroadcastSingleMeasure() // Function: Initiate all slave to do 1-shot measure in auto mode/
 {
-    //printf("startBroadcastSingleMeasure \n");
+    // printf("startBroadcastSingleMeasure \n");
     clearBuf();
     byte buf[9] = {0xAA, 0x7F, 0x00, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00};
     buf[8] = calcCs(buf, 9);
@@ -383,7 +408,7 @@ void CSk60plus::getBroadcastSingleMeasure() // Function: Initiate all slave to d
 }
 void CSk60plus::getStatus()
 {
-    //printf("getStatus \n");
+    // printf("getStatus \n");
     clearBuf();
     byte addr = _addr | 0b10000000; // R/W indicate bit, 0: Master write to Slave, 1: Master read from Slave  Slave address is 0x51, address has only 7-bits, so the address is from 0x00 to 0x7F, 0x00 is the default address before master issue module address change command, 0x7F is the broadcast address reserved for one-master to multi-slave network;
     byte buf[5] = {0xAA, addr, 0x00, 0x00, 0x00};
@@ -393,7 +418,7 @@ void CSk60plus::getStatus()
 bool CSk60plus::readStatus()
 {
     (readBuf()) ? _status = _bufRead[7] : _status = 0xFF;
-    //printf("readStatus=  %0#4X \n", _status);
+    // printf("readStatus=  %0#4X \n", _status);
     if (_status == 0x00)
         return true;
     else
@@ -401,7 +426,7 @@ bool CSk60plus::readStatus()
 }
 void CSk60plus::getMeasureResult() // Function: master read out the distance measure result;
 {
-    //printf("getMeasureResult \n");
+    // printf("getMeasureResult \n");
     clearBuf();
     byte addr = _addr | 0b10000000; // R/W indicate bit, 0: Master write to Slave, 1: Master read from Slave  Slave address is 0x51, address has only 7-bits, so the address is from 0x00 to 0x7F, 0x00 is the default address before master issue module address change command, 0x7F is the broadcast address reserved for one-master to multi-slave network;
     byte buf[5] = {0xAA, addr, 0x00, 0x22, 0x00};
