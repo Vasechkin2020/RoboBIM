@@ -114,8 +114,8 @@ void executeCommand()
   {
     flagExecuteCommand = true;
     timeExecuteCommand = millis();                  // Запоминаем время когда дали команду моторам вращаться. Если через 1 секунду не поступит новой команды моторы остановятся сами movementTime()
-    setSpeed_L(Data2Driver_receive.control.speedL); // Задаем скорость левого колеса в метрах в секунду
-    setSpeed_R(Data2Driver_receive.control.speedR); // Задаем скорость правого колеса в метрах в секунду
+    setSpeed_L(Data2Driver_receive.control.speedL); // Задаем скорость левого колеса в оборотах в секунду
+    setSpeed_R(Data2Driver_receive.control.speedR); // Задаем скорость правого колеса в оборотах в секунду
   }
   predControl = Data2Driver_receive.control; // Запоминаем на следующий раз какая была ранее задана скорость
 #endif
