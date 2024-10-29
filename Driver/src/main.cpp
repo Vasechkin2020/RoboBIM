@@ -90,6 +90,7 @@ void setup()
     // #ifdef SPI_protocol
     //  Иницируем всегда, иначе ошибки на шине
     initSPI_slave();        // Инициализация SPI_slave
+    collect_Driver2Data();  // Собираем данные в структуре для отправки
     spi_slave_queue_Send(); // Configure receiver Первый раз закладываем данные чтобы как только мастер к нам обратиться было чем ответить
 
     // printf("spi_slave_queue_Send \n");

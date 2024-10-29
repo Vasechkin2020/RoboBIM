@@ -58,7 +58,7 @@ IRAM_ATTR void rx_ok(spi_slave_transaction_t *trans) // IRAM_ATTR Добавит
     flag_data = true; // Флаг что обменялись данными
 }
 
-void initSPI_slave()
+void initSPI_slave() 
 {
     Serial.println("Control Slave_SPI init...");
     pinMode(PIN_NUM_MISO, OUTPUT); // Линия на выход
