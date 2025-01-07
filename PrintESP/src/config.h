@@ -50,17 +50,17 @@ struct Struct_Print2Data
   uint32_t cheksum = 0; // Контрольная сумма данных в структуре
 };
 
-Struct_Print2Data Print2Data_send;                             // Тело робота. тут все переменные его характеризующие на низком уровне
+Struct_Print2Data Print2Data_send;                       // Тело робота. тут все переменные его характеризующие на низком уровне
 const int size_structura_send = sizeof(Print2Data_send); // Размер структуры с данными которые передаем
 
 //*********************************************************************
 
 struct SControlPrint
 {
-  uint32_t status = 0; // Текущий режим работы 0 - не печатем, 1 печатаем
-  uint32_t mode = 0; // Текущий режим работы какеи сопла печатют
+  uint32_t status = 0;    // Текущий режим работы 0 - не печатем, 1 печатаем
+  uint32_t mode = 0;      // Текущий режим работы какеи сопла печатют
   uint32_t intensity = 2; // ИНтенсивность печати. Сколько раз прыскаем на 1 мм
-  float speed = 0;   // Текущая скорость движения при которой надо печатать. От нее зависит интервал между выпрыскиванием чернил
+  float speed = 0;        // Текущая скорость движения при которой надо печатать. От нее зависит интервал между выпрыскиванием чернил
 };
 
 // Структура получаемых данных из Data к Print
@@ -71,9 +71,9 @@ struct Struct_Data2Print
   uint32_t cheksum = 0;       // Контрольная сумма данных в структуре
 };
 
-Struct_Data2Print Data2Print_receive;                                // Экземпляр структуры получаемых данных
+Struct_Data2Print Data2Print_receive;                          // Экземпляр структуры получаемых данных
 const int size_structura_receive = sizeof(Data2Print_receive); // Размер структуры с данными которые получаем
-SControlPrint controlPrint;                                       // Режим работы печати
+SControlPrint controlPrint;                                    // Режим работы печати
 
 const uint16_t max_size_stuct = (size_structura_receive < size_structura_send) ? size_structura_send : size_structura_receive; // Какая из структур больше
 

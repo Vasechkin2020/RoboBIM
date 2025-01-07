@@ -80,6 +80,7 @@ struct SMotor
 struct SMpu // Структура с данными со всех датчиков, отправляем наверх
 {
   int32_t status = 0; // статус состояния
+  float rate;     // частота работы датчика
   SXyz angleEuler;
   SXyz linear;
 };

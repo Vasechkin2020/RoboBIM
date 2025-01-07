@@ -3,7 +3,7 @@
 #include <Wire.h>
 
 #define MOTOR yes
-#define BNO_def yes
+//#define BNO_def yes
 #define SPI_protocol yes
 #define LED_def yes
 #define VL530L0X_def yes

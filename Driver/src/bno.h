@@ -455,6 +455,7 @@ void BNO055_GetID_from_BNO055() // Считывание уникального �
 	}
 	Serial.println("- End BNO055_GetID_from_BNO055-");
 }
+
 void BNO055_GetOffset_from_BNO055()
 {
 	Serial.println("BNO055_GetOffset_from_BNO055");
@@ -624,7 +625,11 @@ void Init_BNO055()
 	else
 	{
 		Serial.println(String(millis()) + " Failed to Connect to BNO055 !!!!!!!!!!!!!!");
-		delay(1000000);
+		while (1)
+		{
+			/* code */
+		}
+		;
 	}
 }
 
