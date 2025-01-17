@@ -5,9 +5,9 @@
 #define MOTOR yes
 //#define BNO_def yes
 #define SPI_protocol yes
-#define LED_def yes
-#define VL530L0X_def yes
-#define RCWL1601_def yes
+// #define LED_def yes
+// #define VL530L0X_def yes
+// #define RCWL1601_def yes
 
 #include "config.h" // Основной конфигурационный файл с общими настройками
 #include "code.h"
