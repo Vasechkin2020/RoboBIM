@@ -5,9 +5,9 @@
 #define MOTOR yes
 //#define BNO_def yes
 #define SPI_protocol yes
-// #define LED_def yes
-// #define VL530L0X_def yes
-// #define RCWL1601_def yes
+#define LED_def yes
+#define VL530L0X_def yes
+#define RCWL1601_def yes
 
 #include "config.h" // Основной конфигурационный файл с общими настройками
 #include "code.h"
@@ -188,17 +188,17 @@ void loop()
         // printf("\n");
 
 #ifdef RCWL1601_def
-        // Serial.print(" distance = ");
-        // Serial.print(uzi.distance);
-        // Serial.print(" status = ");
-        // Serial.println(uzi.status);
+        Serial.print(" distance = ");
+        Serial.print(uzi.distance);
+        Serial.print(" status = ");
+        Serial.println(uzi.status);
 #endif
 
 #ifdef VL530L0X_def
-        // Serial.print(" distance laserL= ");
-        // Serial.print(laser_L);
-        // Serial.print(" distance laserR= ");
-        // Serial.println(laser_R);
+        Serial.print(" distance laserL= ");
+        Serial.print(laser_L);
+        Serial.print(" distance laserR= ");
+        Serial.println(laser_R);
 #endif
     }
 

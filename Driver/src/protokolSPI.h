@@ -73,9 +73,11 @@ void initSPI_slave()
 {
     pinMode(PIN_NUM_MISO, OUTPUT); // Линия на выход
     // ПО умолчанию все к минусу кроме чипселект
+    // digitalWrite(PIN_NUM_MISO,1);
+    
 
-    pinMode(PIN_NUM_MOSI, INPUT_PULLDOWN); // Линия на вход подтянута к Плюсу
-    pinMode(PIN_NUM_CLK, INPUT_PULLDOWN);  // Линия на вход подтянута к Плюсу
+    pinMode(PIN_NUM_MOSI, INPUT_PULLDOWN); // Линия на вход подтянута Нулю на распбери пай
+    pinMode(PIN_NUM_CLK, INPUT_PULLDOWN);  // Линия на вход подтянута Нулю на распбери пай
     pinMode(PIN_NUM_CS, INPUT_PULLUP);     // Линия на вход подтянута к Плюсу
 
     // pinMode(PIN_NUM_MOSI, INPUT); // Линия на вход подтянута к минусу резистором на плате поэтому подтяжка не нужна
