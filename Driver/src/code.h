@@ -168,7 +168,7 @@ void collect_Driver2Data()
 {
   Driver2Data_send.id++;
   Driver2Data_send.motor = motor;
-  Driver2Data_send.bno055 = bno055;
+  // Driver2Data_send.bno055 = bno055;
   Driver2Data_send.laserL = laserL;
   Driver2Data_send.laserR = laserR;
   Driver2Data_send.uzi = uzi;

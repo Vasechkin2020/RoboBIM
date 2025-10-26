@@ -35,25 +35,25 @@ void setup()
     // initLed(); Не включать так как совпадает с моторами на платформу
 
     Wire.begin(); // Старт шины I2C
-    Wire.setClock(400000);
-    Serial.println(String(millis()) + " Start init I2C 400000 ...");
+    Wire.setClock(400000);// Установка частоты шины I2C
+    Serial.println(String(millis()) + " Start init I2C 400000 ..."); 
 
-    // scanI2C();//Поиск устройств на шине I2C
-    //  set_TCA9548A(0);
-    //  Serial.print(" All = ");
-    //  scanI2C();
-    //  Serial.println(" === ");
-    //   for (uint8_t i = 0; i < 8; i++)
-    //   {
-    //       set_TCA9548A(i);
-    //       Serial.print(" Slot = ");
-    //       Serial.println(i);
-    //       delay(100);
-    //       scanI2C();
-    //       delay(100);
-    //   }
+    scanI2C();//Поиск устройств на шине I2C
+     set_TCA9548A(0);
+     Serial.print(" All = ");
+     scanI2C();
+     Serial.println(" === ");
+      for (uint8_t i = 0; i < 8; i++)
+      {
+          set_TCA9548A(i);
+          Serial.print(" Slot = ");
+          Serial.println(i);
+          delay(100);
+          scanI2C();
+          delay(100);
+      }
 
-    // delay(1000000);
+    delay(1000000);
 
 #ifdef MOTOR
     initMotor(); // Начальная инициализация и настройка шаговых моторов
