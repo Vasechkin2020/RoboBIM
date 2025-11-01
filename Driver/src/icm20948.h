@@ -13,6 +13,9 @@
 #include <Arduino.h>
 #include "i2c_my.h"
 
+SXyz icm20948_gyro;	 // Данные с гироскопа
+SXyz icm20948_accel; // Данные с акселерометра
+
 static float gyro_scale_factor;
 static float accel_scale_factor;
 
@@ -74,6 +77,10 @@ typedef struct
 	float b_y;
 	float b_z;
 } StructBias;
+// Калибровочные коэффициенты
+StructBias aBias = {0, 0, 0}; // для акселерометра
+StructBias gBias = {0, 0, 0}; // для гироскопа
+
 /* Структура для scale */
 typedef struct
 {
@@ -84,9 +91,11 @@ typedef struct
 
 /* Main Functions */
 
-void icm20948_DisableLPMMode(); // Отключение режима низкого энергопотребления (LPM) для нормальной работы датчика
-void icm20948_readData(uint8_t *buffer, uint16_t size); // Опрашиваем датчик 
-void calcBufferICM(uint8_t *buffer, SXyz *dataAccel, SXyz *dataGyro); // Обработка буфера после считывания данных по шине
+void icm20948_DisableLPMMode();							 // Отключение режима низкого энергопотребления (LPM) для нормальной работы датчика
+void icm20948_readData(SXyz *dataAccel, SXyz *dataGyro); // Опрашиваем датчик
+void calcBufferICM(SXyz *dataAccel, SXyz *dataGyro);	 // Обработка буфера после считывания данных по шине
+void calc_bias_accel_gyro (uint16_t samples); // Функция для получения усредненных данных акселерометра и гироскопа для расчета bias
+void calc_average_data(uint16_t samples); // Функция усредненных знаяений акселерометра и гироскопа 
 
 void enable_i2c_mode(void); // Отключение SPI и включение I2C
 
@@ -543,7 +552,7 @@ void icm20948_init()
 
 	//*********************** АКСЕЛЬРОМЕТР**************************
 	// Акселерометр: ACCEL_DLPFCFG = 5 (3DB BW = 11,5 Гц, NBW = 13,1 Гц), FSR = ±2g, ODR ≈ 102,27 Гц (ACCEL_SMPLRT_DIV = 10).
-	icm20948_accel_full_scale_select(_2g); // Выбор полной шкалы для акселерометра  // - full_scale: Значение шкалы (например, ±2g, ±4g, см. datasheet, раздел 6.8) // Используется для установки диапазона измерений акселерометра (влияет на чувствительность)
+	icm20948_accel_full_scale_select(_2g);	// Выбор полной шкалы для акселерометра  // - full_scale: Значение шкалы (например, ±2g, ±4g, см. datasheet, раздел 6.8) // Используется для установки диапазона измерений акселерометра (влияет на чувствительность)
 	icm20948_accel_low_pass_filter(4);		// Настройка низкочастотного фильтра для акселрометра //  - config: Значение от 0 до 7, задающее частоту среза фильтра (см. datasheet, раздел 6.8) // Используется для уменьшения шума в данных гироскопа
 	icm20948_accel_sample_rate_divider(10); // Установка делителя частоты дискретизации для акселрометра  //  - divider: Значение делителя (Output Data Rate = 1.125 кГц / (1 + divider)) // Используется для настройки частоты вывода данных гироскопа (например, 100 Гц при divider = 10)
 
@@ -552,12 +561,86 @@ void icm20948_init()
 	Serial.println("======================================= END icm20948_init ===================================== ");
 }
 
+// Функция усредненных знаяений акселерометра и гироскопа 
+void calc_average_data(uint16_t samples)
+{
+	SXyz tempA = {0.0f, 0.0f, 0.0f};
+	SXyz tempG = {0.0f, 0.0f, 0.0f};
+
+	for (uint16_t i = 0; i < samples; i++)
+	{
+		SXyz rawA, rawG; // Временные значения
+		icm20948_readData(&rawA, &rawG); // Опрашиваем датчик для получения сырых данных
+        calcBufferICM(&rawA, &rawG);     // Обработка буфера после считывания данных по шине
+		tempA.x += rawA.x;
+		tempA.y += rawA.y;
+		tempA.z += rawA.z; 
+		tempG.x += rawG.x;
+		tempG.y += rawG.y;
+		tempG.z += rawG.z; 
+		delay(10); // Задержка между выборками (настройте по датчику)  у меня 100 Герц
+	}
+		tempA.x = tempA.x / samples;
+		tempA.y = tempA.y / samples;
+		tempA.z = tempA.z / samples; 
+		tempG.x = tempG.x / samples;
+		tempG.y = tempG.y / samples;
+		tempG.z = tempG.z / samples; 
+		printf( "Accel =%+6.4f %+6.4f %+6.4f | ", tempA.x, tempA.y, tempA.z); // Вывод средних значений  акселерометра
+		printf( "Gyro =%+6.4f %+6.4f %+6.4f \n", tempG.x, tempG.y, tempG.z); // Вывод средних значений  гироскопа
+}
+
+// Функция для получения усредненных данных акселерометра и гироскопа для расчета bias
+void calc_bias_accel_gyro (uint16_t samples)
+{
+	SXyz tempA = {0.0f, 0.0f, 0.0f};
+	SXyz tempG = {0.0f, 0.0f, 0.0f};
+
+	printf("+++ calc_bias_accel_gyro ");
+	for (int j = 0; j < 5; j++)
+	{
+		printf("%d ", 5 - j); // Отсчет времени
+		fflush(stdout);		  // Принудительный сброс буфера
+		delay(1000);	  // Задержка 1 секунда
+	}
+	printf("Start... | \n");
+
+	fflush(stdout); // Принудительный сброс буфера для вывода на экран
+
+	for (uint16_t i = 0; i < samples; i++)
+	{
+		SXyz rawA, rawG; // Временные значения
+		icm20948_readData(&rawA, &rawG); // Опрашиваем датчик для получения сырых данных
+		tempA.x += rawA.x;
+		tempA.y += rawA.y;
+		tempA.z += rawA.z;
+
+		tempG.x += rawG.x;
+		tempG.y += rawG.y;
+		tempG.z += rawG.z;
+
+		delay(10); // Задержка между выборками (настройте по датчику)  у меня 100 Герц
+	}
+
+	aBias.b_x = tempA.x / samples;
+	aBias.b_y = tempA.y / samples;
+	aBias.b_z = accel_scale_factor - (tempA.z / samples); // тут надо свести к accel_scale_factor (16384 для 2g)
+
+	printf("    aBias.b_x = %f  aBias.b_y = %f aBias.b_z = %f \n", aBias.b_x, aBias.b_y, aBias.b_z); // Вывод значений смещений гироскопа
+
+	gBias.b_x = tempG.x / samples;
+	gBias.b_y = tempG.y / samples;
+	gBias.b_z = tempG.z / samples;
+	printf("    gBias.b_x = %f  gBias.b_y = %f gBias.b_z = %f \n", gBias.b_x, gBias.b_y, gBias.b_z); // Вывод значений смещений гироскопа
+}
+
+
 // Вывод ICM-20948 из спящего режима
 void icm20948_wakeup()
 {
 	printf("+++ icm20948_wakeup \n");
 
-	WriteByte_I2C(ICM20948_I2C_ADDRESS, REG_BANK_SEL, ub_0);			   // Устанавливаем работы с регистрами нужной страницы
+	WriteByte_I2C(ICM20948_I2C_ADDRESS, REG_BANK_SEL, ub_0);			 // Устанавливаем работы с регистрами нужной страницы
 	uint8_t new_val = ReadByte_I2C(ICM20948_I2C_ADDRESS, B0_PWR_MGMT_1); // Считываем значение регистра
 
 	Serial.print(" IN B0_PWR_MGMT_1 registr = "); // Вывод регистра
@@ -567,17 +650,17 @@ void icm20948_wakeup()
 	Serial.println("");
 
 	new_val &= 0xBF;
-	
+
 	Serial.print(" OUT B0_PWR_MGMT_1 registr = "); // Вывод регистра
 	Serial.print(new_val, HEX);
 	Serial.print(" printByteBinary: ");
 	printByteBinary(new_val);
 	Serial.println("");
 
-	WriteByte_I2C(ICM20948_I2C_ADDRESS, B0_PWR_MGMT_1, new_val); // Записываем новое значение регистра 
+	WriteByte_I2C(ICM20948_I2C_ADDRESS, B0_PWR_MGMT_1, new_val); // Записываем новое значение регистра
 	delayMicroseconds(100);
 
-	new_val = ReadByte_I2C(ICM20948_I2C_ADDRESS, B0_PWR_MGMT_1); // Считываем значение регистра 
+	new_val = ReadByte_I2C(ICM20948_I2C_ADDRESS, B0_PWR_MGMT_1); // Считываем значение регистра
 
 	Serial.print(" REZ B0_PWR_MGMT_1 registr = "); // Вывод регистра
 	Serial.print(new_val, HEX);
@@ -587,8 +670,6 @@ void icm20948_wakeup()
 
 	printf("--- icm20948_wakeup \n");
 }
-
-
 
 // Установка делителя частоты дискретизации для акселерометра
 void icm20948_accel_sample_rate_divider(uint16_t divider)
@@ -617,8 +698,8 @@ void icm20948_accel_sample_rate_divider(uint16_t divider)
 	Serial.println("");
 
 	WriteByte_I2C(ICM20948_I2C_ADDRESS, REG_BANK_SEL, ub_2);			   // Устанавливаем работы с регистрами нужной страницы
-	WriteByte_I2C(ICM20948_I2C_ADDRESS, B2_ACCEL_SMPLRT_DIV_1, divider_1); // Записываем новое значение регистра 
-	WriteByte_I2C(ICM20948_I2C_ADDRESS, B2_ACCEL_SMPLRT_DIV_2, divider_2); // Записываем новое значение регистра 
+	WriteByte_I2C(ICM20948_I2C_ADDRESS, B2_ACCEL_SMPLRT_DIV_1, divider_1); // Записываем новое значение регистра
+	WriteByte_I2C(ICM20948_I2C_ADDRESS, B2_ACCEL_SMPLRT_DIV_2, divider_2); // Записываем новое значение регистра
 	delayMicroseconds(100);
 
 	uint8_t new_val = ReadByte_I2C(ICM20948_I2C_ADDRESS, B2_ACCEL_SMPLRT_DIV_1); // Считываем значение регистра B2_ACCEL_CONFIG
@@ -644,7 +725,7 @@ void icm20948_accel_sample_rate_divider(uint16_t divider)
 void icm20948_accel_low_pass_filter(uint8_t config)
 {
 	printf("+++ icm20948_accel_low_pass_filter \n");
-	
+
 	Serial.print(" IN config = "); // Вывод  делителя
 	Serial.print(config, HEX);
 	Serial.print(" printByteBinary: ");
@@ -762,7 +843,7 @@ void icm20948_gyro_sample_rate_divider(uint8_t divider)
 	Serial.println("");
 
 	WriteByte_I2C(ICM20948_I2C_ADDRESS, REG_BANK_SEL, ub_2);		  // Устанавливаем работы с регистрами нулевой страницы
-	WriteByte_I2C(ICM20948_I2C_ADDRESS, B2_GYRO_SMPLRT_DIV, divider); // Записываем новое значение регистра 
+	WriteByte_I2C(ICM20948_I2C_ADDRESS, B2_GYRO_SMPLRT_DIV, divider); // Записываем новое значение регистра
 	delayMicroseconds(100);
 
 	new_val = ReadByte_I2C(ICM20948_I2C_ADDRESS, B2_GYRO_SMPLRT_DIV); // Считываем значение регистра B2_GYRO_SMPLRT_DIV
@@ -918,39 +999,37 @@ void icm20948_gyro_low_pass_filter(uint8_t config)
 	printf("    End icm20948_gyro_low_pass_filter ****************************************************** \n");
 }
 
-// Опрашиваем датчик 
-void icm20948_readData(uint8_t *buffer, uint16_t size) 
+// Опрашиваем датчик. Возвращает СЫРЫЕ данные без bias and scale
+void icm20948_readData(SXyz *dataAccel, SXyz *dataGyro)
 {
+	uint8_t static buffer[12] = {0}; // буфер для ICM20948
+	uint16_t size = 12;				 // Опрашиваем 12 байт из датчика
 	set_TCA9548A(multi_line_ICM);
 	delayMicroseconds(100);
-	
+
 	Wire.beginTransmission(ICM20948_I2C_ADDRESS); // Start I2C transmission
-	Wire.write(B0_ACCEL_XOUT_H); /* Make sure to set address auto-increment bit */
+	Wire.write(B0_ACCEL_XOUT_H);				  /* Make sure to set address auto-increment bit */
 
 	byte reza = Wire.endTransmission(); //  End I2C transmission
-	if (reza != 0) //
+	if (reza != 0)						//
 	{
 		Serial.print("!!! ReadByte_I2C_WriteMistake reza = ");
 		Serial.println(reza);
 	};
-	
+
 	byte rezb = Wire.requestFrom(ICM20948_I2C_ADDRESS, size); // Request bytes from I2C slave
-	if (rezb != size) // Вернуть должна столько байтов сколько попросили
+	if (rezb != size)										  // Вернуть должна столько байтов сколько попросили
 	{
 		Serial.print("!!! ReadByte_I2C_WriteMistake return byte = ");
 		Serial.println(rezb);
 	};
-	
+
 	int i = 0;
 	for (; i < size && (Wire.available() > 0); i++)
 	{
 		buffer[i] = Wire.read(); // read one byte of data
 	}
-}
 
-// Функция для расчета буфера ICM20948
-void calcBufferICM(uint8_t *buffer, SXyz *dataAccel, SXyz *dataGyro)
-{
 	// DEBUG_PRINTF("ICM20948 buffer");
 	dataAccel->x = (int16_t)(buffer[0] << 8 | buffer[1]);
 	dataAccel->y = (int16_t)(buffer[2] << 8 | buffer[3]);
@@ -965,14 +1044,18 @@ void calcBufferICM(uint8_t *buffer, SXyz *dataAccel, SXyz *dataGyro)
 	// 	DEBUG_PRINTF(" = 0x%02X", buffer[i]);
 	// }
 	// DEBUG_PRINTF(" \n");
+}
 
+// Функция для расчета буфера ICM20948. Применяем bias and scale.
+void calcBufferICM(SXyz *dataAccel, SXyz *dataGyro)
+{
 	float const ALPHA = 0.5;
-	static float g = 9.80665;  // Ускорение свободного падения в м/с²
+	static float g = 9.80665; // Ускорение свободного падения в м/с²
 
 	// DEBUG_PRINTF("Accel accel_scale_factor = %+8.3f | ", accel_scale_factor);
-	dataAccel->x = dataAccel->x / accel_scale_factor * g; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
-	dataAccel->y = dataAccel->y / accel_scale_factor * g; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
-	dataAccel->z = dataAccel->z / accel_scale_factor * g; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
+	dataAccel->x = (dataAccel->x - aBias.b_x) / accel_scale_factor * g; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
+	dataAccel->y = (dataAccel->y - aBias.b_y) / accel_scale_factor * g; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
+	dataAccel->z = (dataAccel->z - aBias.b_z) / accel_scale_factor * g; // Преобразование в g делением на акселерационный коэффициент Вычитаем bias и умножаем на масштабный коефициент
 
 	static SXyz smoothed_data_accel = {0, 0, 9.80665}; // Начальные значения
 
@@ -985,14 +1068,14 @@ void calcBufferICM(uint8_t *buffer, SXyz *dataAccel, SXyz *dataGyro)
 	*dataAccel = smoothed_data_accel;
 
 	// DEBUG_PRINTF("Gyro gyro_scale_factor = %+8.3f | ", gyro_scale_factor);
-	dataGyro->x = dataGyro->x / gyro_scale_factor; // Преобразование сырых данных в физические величины с учетом масштаба
-	dataGyro->y = dataGyro->y / gyro_scale_factor;
-	dataGyro->z = dataGyro->z / gyro_scale_factor;
+	dataGyro->x = (dataGyro->x - gBias.b_x) / gyro_scale_factor; // Преобразование сырых данных в физические величины с учетом масштаба
+	dataGyro->y = (dataGyro->y - gBias.b_y) / gyro_scale_factor;
+	dataGyro->z = (dataGyro->z - gBias.b_z) / gyro_scale_factor;
 
 	static SXyz smoothed_data_gyro = {0, 0, 0}; // Начальные значения
 
 	smoothed_data_gyro.x = ALPHA * dataGyro->x + (1 - ALPHA) * smoothed_data_gyro.x; // Экспоненциальное сглаживание везде по всем осям используем один коефициент
-	smoothed_data_gyro.y = ALPHA * dataGyro->y + (1 - ALPHA) * smoothed_data_gyro.y; // 
+	smoothed_data_gyro.y = ALPHA * dataGyro->y + (1 - ALPHA) * smoothed_data_gyro.y; //
 	smoothed_data_gyro.z = ALPHA * dataGyro->z + (1 - ALPHA) * smoothed_data_gyro.z;
 
 	// DEBUG_PRINTF("Gyro raw = %+8.3f %+8.3f %+8.3f smoothed= %+8.3f %+8.3f %+8.3f | ", data->x, data->y, data->z, smoothed_data.x, smoothed_data.y, smoothed_data.z);

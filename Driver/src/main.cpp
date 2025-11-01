@@ -88,6 +88,11 @@ void setup()
 
 #ifdef ICM20948
     icm20948_init(); // Инициализация и настройка ICM20948
+
+    calc_average_data(500); // Это расчет до расчета биас просто посмотреть разницу в показаниях до и после.
+    calc_bias_accel_gyro (500); // Расчет смещений акселерометра и гироскопа 300 раз это 3 секунды при 100 Герц
+    calc_average_data(500); // Это расчет после расчета биас просто посмотреть разницу в показаниях до и после.
+
     // delay(1000000);
 #endif
 
@@ -130,17 +135,14 @@ void loop()
         BNO055_readData(); // Опрашиваем датчик получаем углы
 #endif
 #ifdef ICM20948
-        uint8_t static bufferICM20948[12] = {0};                        // буфер для ICM20948
-        SXyz icm20948_gyro;                                             // Данные с гироскопа
-        SXyz icm20948_accel;                                            // Данные с акселерометра
-        icm20948_readData(bufferICM20948, 12);                          // Опрашиваем датчик
-        calcBufferICM(bufferICM20948, &icm20948_accel, &icm20948_gyro); // Обработка буфера после считывания данных по шине
+        icm20948_readData(&icm20948_accel, &icm20948_gyro); // Опрашиваем датчик
+        calcBufferICM(&icm20948_accel, &icm20948_gyro);     // Обработка буфера после считывания данных по шине
 
-        printf("x =%f y =%f z =%f | x =%f y =%f z =%f \n", icm20948_accel.x, icm20948_accel.y, icm20948_accel.z, icm20948_gyro.x, icm20948_gyro.y, icm20948_gyro.z);
-        
+        // printf("x =%f y =%f z =%f | x =%f y =%f z =%f \n", icm20948_accel.x, icm20948_accel.y, icm20948_accel.z, icm20948_gyro.x, icm20948_gyro.y, icm20948_gyro.z);
+
         icm20948.accel = icm20948_accel;
         icm20948.gyro = icm20948_gyro;
-        icm20948.status = 0;              // Статус все хорошо
+        icm20948.status = 0; // Статус все хорошо
 
         static uint32_t timeICM20948 = 0; // Время для подсчета частоты опроса
         if (timeICM20948 == 0)
