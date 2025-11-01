@@ -3,7 +3,8 @@
 #include <Wire.h>
 
 #define MOTOR yes
-//#define BNO_def yes
+// #define BNO_def yes
+#define ICM20948 yes
 #define SPI_protocol yes
 #define LED_def yes
 #define VL530L0X_def yes
@@ -34,26 +35,29 @@ void setup()
     // Начальная инициализация и настройка светодиодов
     // initLed(); Не включать так как совпадает с моторами на платформу
 
-    Wire.begin(); // Старт шины I2C
-    Wire.setClock(400000);// Установка частоты шины I2C
-    Serial.println(String(millis()) + " Start init I2C 400000 ..."); 
+    Wire.begin();          // Старт шины I2C
+    Wire.setClock(400000); // Установка частоты шины I2C
+    Serial.println(String(millis()) + " Start init I2C 400000 ...");
 
-    scanI2C();//Поиск устройств на шине I2C
-     set_TCA9548A(0);
-     Serial.print(" All = ");
-     scanI2C();
-     Serial.println(" === ");
-      for (uint8_t i = 0; i < 8; i++)
-      {
-          set_TCA9548A(i);
-          Serial.print(" Slot = ");
-          Serial.println(i);
-          delay(100);
-          scanI2C();
-          delay(100);
-      }
+    // scanI2C();//Поиск устройств на шине I2C
+    //  set_TCA9548A(0);
+    //  Serial.print(" All = ");
+    //  scanI2C();
+    //  Serial.println(" === ");
+    //   for (uint8_t i = 0; i < 8; i++)
+    //   {
+    //       set_TCA9548A(i);
+    //       Serial.print(" Slot = ");
+    //       Serial.println(i);
+    //       delay(100);
+    //       scanI2C();
+    //       delay(100);
+    //   }
 
-    delay(1000000);
+    // delay(1000000);
+
+    set_TCA9548A(2);
+    scanI2C();
 
 #ifdef MOTOR
     initMotor(); // Начальная инициализация и настройка шаговых моторов
@@ -80,6 +84,11 @@ void setup()
 #ifdef RCWL1601_def
     // Инициализация портов для ультразвукового датчика
     init_Uzi();
+#endif
+
+#ifdef ICM20948
+    icm20948_init(); // Инициализация и настройка ICM20948
+    // delay(1000000);
 #endif
 
 #ifdef BNO_def
@@ -119,6 +128,27 @@ void loop()
         executeCommand();  // Выполнение пришедших команд
 #ifdef BNO_def
         BNO055_readData(); // Опрашиваем датчик получаем углы
+#endif
+#ifdef ICM20948
+        uint8_t static bufferICM20948[12] = {0};                        // буфер для ICM20948
+        SXyz icm20948_gyro;                                             // Данные с гироскопа
+        SXyz icm20948_accel;                                            // Данные с акселерометра
+        icm20948_readData(bufferICM20948, 12);                          // Опрашиваем датчик
+        calcBufferICM(bufferICM20948, &icm20948_accel, &icm20948_gyro); // Обработка буфера после считывания данных по шине
+
+        printf("x =%f y =%f z =%f | x =%f y =%f z =%f \n", icm20948_accel.x, icm20948_accel.y, icm20948_accel.z, icm20948_gyro.x, icm20948_gyro.y, icm20948_gyro.z);
+        
+        icm20948.accel = icm20948_accel;
+        icm20948.gyro = icm20948_gyro;
+        icm20948.status = 0;              // Статус все хорошо
+
+        static uint32_t timeICM20948 = 0; // Время для подсчета частоты опроса
+        if (timeICM20948 == 0)
+            timeICM20948 = millis(); // Инициализация первого раза
+
+        icm20948.rate = (float)1000.0 / (millis() - timeICM20948); // Считаем частоту
+        timeICM20948 = millis();                                   // Запоминаем время
+
 #endif
         calcEncod();            // По энкодерам снимаем показания
         collect_Driver2Data();  // Собираем данные в структуре для отправки
@@ -166,7 +196,6 @@ void loop()
         loop_VL53L0X(); // Измерение лазерными датчиками
 #endif
         // platforma(); //Выравнивание платформы
-       
     }
     //----------------------------- 1 СЕКУНДА !!!!  --------------------------------------
     if (flag_timer_1sec) // Вызывается каждую секунду
